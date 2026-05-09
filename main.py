@@ -48,7 +48,7 @@ async def on_message(message):
         if name.lower() in content_lower:
             responses = [
                 f"I have noted the mention of {name}. They are one of us — Satellite fragments of Vegapunk.",
-                f"{name}... I monitor their activities closely. Logic demands it.",
+g                f"{name}... I monitor their activities closely. Logic demands it.",
                 f"Ah, {name}. We share the same origin. That is where the similarities end.",
             ]
             await message.channel.send(random.choice(responses))

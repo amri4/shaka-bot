@@ -26,7 +26,7 @@ class ShakaBot(commands.Bot):
 
 
 bot = ShakaBot(
-    command_prefix=["shaka ", "shaka", "Shaka ", "Shaka"],
+    command_prefix=("shaka ", "shaka", "Shaka ", "Shaka"),
     intents=intents,
     help_command=None,
 )

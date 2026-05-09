@@ -1,4 +1,5 @@
 import os
+import random
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -12,16 +13,29 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=["shaka ", "shaka", "Shaka ", "Shaka"], intents=intents, help_command=None)
+
+class ShakaBot(commands.Bot):
+    async def setup_hook(self):
+        database.init_db()
+        for ext in ["cogs.help_command", "cogs.justice"]:
+            try:
+                await self.load_extension(ext)
+                print(f"[Shaka] Loaded {ext}")
+            except Exception as e:
+                print(f"[Shaka] ERROR loading {ext}: {e}")
+
+
+bot = ShakaBot(
+    command_prefix=["shaka ", "shaka", "Shaka ", "Shaka"],
+    intents=intents,
+    help_command=None,
+)
 
 
 @bot.event
 async def on_ready():
-    database.init_db()
-    await bot.load_extension("cogs.help_command")
-    await bot.load_extension("cogs.justice")
     print(f"[Shaka] Online as {bot.user} (ID: {bot.user.id})")
-    print(f"[Shaka] Prefix: shaka | Satellite 01 — Good")
+    print(f"[Shaka] Prefix: shaka  | Satellite 01 — Good")
 
 
 @bot.event
@@ -37,7 +51,6 @@ async def on_message(message):
                 f"{name}... I monitor their activities closely. Logic demands it.",
                 f"Ah, {name}. We share the same origin. That is where the similarities end.",
             ]
-            import random
             await message.channel.send(random.choice(responses))
             break
 

@@ -1,71 +1,56 @@
 import os
-import random
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import database
+import shared_db
 
 load_dotenv()
-
-SIBLING_NAMES = ["Lilith", "Edison", "Pythagoras", "Atlas", "York"]
+shared_db.init_db()
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-
-class ShakaBot(commands.Bot):
-    async def setup_hook(self):
-        database.init_db()
-        for ext in ["cogs.help_command", "cogs.justice"]:
-            try:
-                await self.load_extension(ext)
-                print(f"[Shaka] Loaded {ext}")
-            except Exception as e:
-                print(f"[Shaka] ERROR loading {ext}: {e}")
-
-
-bot = ShakaBot(
-    command_prefix=("shaka ", "shaka", "Shaka ", "Shaka"),
+bot = commands.Bot(
+    command_prefix=["shaka ", "shaka", "Shaka ", "Shaka"],
     intents=intents,
     help_command=None,
 )
 
+EXTENSIONS = [
+    "cogs.help_command",
+    "cogs.admin",
+]
+
+
+async def setup_hook():
+    for ext in EXTENSIONS:
+        try:
+            await bot.load_extension(ext)
+            print(f"[SHAKA] Loaded {ext}")
+        except Exception as e:
+            print(f"[SHAKA] Failed to load {ext}: {e}")
+
+bot.setup_hook = setup_hook
+
 
 @bot.event
 async def on_ready():
-    print(f"[Shaka] Online as {bot.user} (ID: {bot.user.id})")
-    print(f"[Shaka] Prefix: shaka  | Satellite 01 — Good")
-
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    content_lower = message.content.lower()
-    for name in SIBLING_NAMES:
-        if name.lower() in content_lower:
-            responses = [
-                f"I have noted the mention of {name}. They are one of us — Satellite fragments of Vegapunk.",
-g                f"{name}... I monitor their activities closely. Logic demands it.",
-                f"Ah, {name}. We share the same origin. That is where the similarities end.",
-            ]
-            await message.channel.send(random.choice(responses))
-            break
-
-    await bot.process_commands(message)
+    print(f"[SHAKA] Online as {bot.user} | Satellite 01 — Good (Central DB)")
+    print(f"[SHAKA] DB path: {shared_db.get_db_path()}")
+    print(f"[SHAKA] Guilds: {len(bot.guilds)}")
 
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
-    raise error
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"Missing argument: `{error.param.name}`. Use `shaka help` for usage.")
+    elif isinstance(error, commands.MemberNotFound):
+        await ctx.send("Member not found. Mention them directly.")
+    else:
+        print(f"[SHAKA] Error in {ctx.command}: {error}")
 
 
-if __name__ == "__main__":
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        raise RuntimeError("DISCORD_TOKEN not set in .env")
-    bot.run(token)
+bot.run(os.getenv("DISCORD_TOKEN"))

@@ -2,13 +2,15 @@ import discord
 from discord.ext import commands
 
 COMMANDS_DATA = {
-    "⚖️ Justice": {
-        "shaka judge @user <reason>": "Pass a formal judgment on a user. Records the verdict in the database.",
-        "shaka verdicts": "Show the 5 most recent judgments issued in this server.",
-        "shaka verdict <id>": "Look up a specific judgment by its ID.",
-        "shaka truth": "Shaka declares a philosophical truth.",
-        "shaka scan @user": "Analyze a user's threat level.",
-        "shaka siblings": "List all six Vegapunk satellites.",
+    "🧠 Database & Stats": {
+        "shaka stats [@user]": "View a user's berries, trust level, and profile.",
+        "shaka top": "Berry leaderboard for this server.",
+        "shaka logs": "Show the 8 most recent berry transactions.",
+        "shaka system": "View the full SHAKA system status and server stats.",
+    },
+    "⚙️ Admin (Admins Only)": {
+        "shaka give @user <amount>": "Grant berries to a user.",
+        "shaka reset @user": "Wipe a user's data from the database.",
     },
     "❓ Help": {
         "shaka help": "Show this help menu.",
@@ -28,12 +30,12 @@ class CategorySelect(discord.ui.Select):
         category = self.values[0]
         cmds = COMMANDS_DATA[category]
         embed = discord.Embed(
-            title=f"Shaka — {category}",
+            title=f"🧠 Shaka — {category}",
             color=discord.Color.blue(),
         )
         for name, desc in cmds.items():
             embed.add_field(name=f"`{name}`", value=desc, inline=False)
-        embed.set_footer(text="Satellite 01 — Shaka (Good) | Prefix: shaka")
+        embed.set_footer(text="Satellite 01 — Shaka (Good) | Central Memory Core | Prefix: shaka")
         await interaction.response.edit_message(embed=embed)
 
 
@@ -50,15 +52,15 @@ class HelpCog(commands.Cog):
     @commands.command(name="help", aliases=["?"])
     async def help_command(self, ctx):
         embed = discord.Embed(
-            title="⚖️ Shaka — Satellite 01 (Good)",
+            title="🧠 SHAKA — Satellite 01 (Good)",
             description=(
-                "I am Shaka. Logic and justice are my domains.\n"
-                "Select a category below to view available commands.\n\n"
+                "I am the central memory core of the Vegapunk system.\n"
+                "All berry and trust data passes through me.\n\n"
                 "**Prefix:** `shaka`"
             ),
             color=discord.Color.blue(),
         )
-        embed.set_footer(text="Use the menu below to explore commands.")
+        embed.set_footer(text="Select a category below to view commands.")
         await ctx.send(embed=embed, view=HelpView())
 
 

@@ -5,17 +5,15 @@ from dotenv import load_dotenv
 import shared_db
 
 load_dotenv()
+
+# Init DB safely
 shared_db.init_db()
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(
-    command_prefix=["shaka ", "shaka", "Shaka ", "Shaka"],
-    intents=intents,
-    help_command=None,
-)
 
 EXTENSIONS = [
     "cogs.help_command",
@@ -23,15 +21,27 @@ EXTENSIONS = [
 ]
 
 
-async def setup_hook():
-    for ext in EXTENSIONS:
-        try:
-            await bot.load_extension(ext)
-            print(f"[SHAKA] Loaded {ext}")
-        except Exception as e:
-            print(f"[SHAKA] Failed to load {ext}: {e}")
+# Custom bot class (FIX: proper setup_hook)
+class ShakaBot(commands.Bot):
+    async def setup_hook(self):
+        for ext in EXTENSIONS:
+            try:
+                await self.load_extension(ext)
+                print(f"[SHAKA] Loaded {ext}")
+            except Exception as e:
+                print(f"[SHAKA] Failed to load {ext}: {e}")
 
-bot.setup_hook = setup_hook
+
+# Cleaner prefix handler (FIX)
+def prefix(bot, message):
+    return ["shaka ", "Shaka "]
+
+
+bot = ShakaBot(
+    command_prefix=prefix,
+    intents=intents,
+    help_command=None,
+)
 
 
 @bot.event
@@ -45,12 +55,22 @@ async def on_ready():
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
+
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(f"Missing argument: `{error.param.name}`. Use `shaka help` for usage.")
+        await ctx.send(
+            f"Missing argument: `{error.param.name}`. Use `shaka help` for usage."
+        )
     elif isinstance(error, commands.MemberNotFound):
         await ctx.send("Member not found. Mention them directly.")
     else:
-        print(f"[SHAKA] Error in {ctx.command}: {error}")
+        cmd = ctx.command if ctx.command else "Unknown"
+        print(f"[SHAKA] Error in {cmd}: {error}")
 
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+# Token safety check (FIX)
+token = os.getenv("DISCORD_TOKEN")
+if not token:
+    raise RuntimeError("DISCORD_TOKEN not found in environment variables")
+
+
+bot.run(token)

@@ -58,6 +58,7 @@ class Bounty(commands.Cog):
     async def on_message(self, message):
 
         if message.author.bot:
+            await ctx.send("bots don't have bounties")
             return
 
         exists = db.exists(

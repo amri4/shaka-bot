@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import mycord
 import random
+import time
 
 # =========================================
 # DATABASE SETUP
@@ -17,9 +18,9 @@ db.create_table(
     """
 )
 
-    # =========================================
-    # BOUNTY SYSTEM
-    # =========================================
+# =========================================
+# BOUNTY SYSTEM
+# =========================================
 
 def get_milestone(bounty):
 
@@ -41,17 +42,19 @@ def get_milestone(bounty):
     else:
         return "🟤 Unknown Pirate"
 
-# ============================================
-# CREATE BOUNTY COG
-# ============================================
+
+# =========================================
+# BOUNTY COG
+# =========================================
 
 class Bounty(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.cooldowns = {}
 
     # =====================================
-    # AUTO CREATE + ADD BOUNTY PER MESSAGE
+    # AUTO BOUNTY GAIN
     # =====================================
 
     @commands.Cog.listener()
@@ -59,6 +62,15 @@ class Bounty(commands.Cog):
 
         if message.author.bot:
             return
+
+        now = time.time()
+
+        last = self.cooldowns.get(message.author.id, 0)
+
+        if now - last < 30:
+            return
+
+        self.cooldowns[message.author.id] = now
 
         exists = db.exists(
             "bounty",
@@ -99,11 +111,12 @@ class Bounty(commands.Cog):
 
     @commands.command()
     async def bounty(self, ctx, member: discord.Member = None):
-        if member.bot:
-            await ctx.send("❌️ Bots don't have bounties")
-            return
 
         member = member or ctx.author
+
+        if member.bot:
+            await ctx.send("❌ Bots don't have bounties.")
+            return
 
         data = db.fetchone(
             "bounty",
@@ -112,17 +125,23 @@ class Bounty(commands.Cog):
         )
 
         if not data:
-            await ctx.send("❌ No bounty found")
+            await ctx.send("❌ No bounty found.")
             return
 
         user_id, bounty = data
+
         milestone = get_milestone(bounty)
 
         embed = discord.Embed(
-            title=f"🏴‍☠️ {member.mention}",
-            description=f"💰 Bounty: **{bounty:,}**<:berries:1506064566260338779>\n\n **{milestone}**",
+            title=f"🏴‍☠️ {member.display_name}",
+            description=(
+                f"💰 Bounty: **{bounty:,}** <:berries:1506064566260338779>\n\n"
+                f"{milestone}"
+            ),
             color=discord.Color.gold()
         )
+
+        embed.set_thumbnail(url=member.display_avatar.url)
 
         await ctx.send(embed=embed)
 
@@ -136,7 +155,7 @@ class Bounty(commands.Cog):
         data = db.fetchall("bounty")
 
         if not data:
-            await ctx.send("❌ No bounty data")
+            await ctx.send("❌ No bounty data found.")
             return
 
         sorted_data = sorted(
@@ -145,20 +164,29 @@ class Bounty(commands.Cog):
             reverse=True
         )
 
+        medals = ["🥇", "🥈", "🥉"]
+
         text = ""
 
-        for index, user in enumerate(sorted_data, start=1):
+        for index, user in enumerate(sorted_data[:10], start=1):
 
             user_id, bounty = user
 
             member = self.bot.get_user(user_id)
 
-            if member:
-                text += (
-                    f"**{index}.** "
-                    f"{member.mention} — "
-                    f"💰 {bounty:,}\n"
-                )
+            if not member:
+                try:
+                    member = await self.bot.fetch_user(user_id)
+                except:
+                    continue
+
+            icon = medals[index - 1] if index <= 3 else f"**{index}.**"
+
+            text += (
+                f"{icon} {member.mention} — "
+                f"💰 **{bounty:,}** "
+                f"<:berries:1506064566260338779>\n"
+            )
 
         embed = discord.Embed(
             title="🏴‍☠️ Bounty Leaderboard",

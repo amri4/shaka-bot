@@ -1,76 +1,45 @@
 import os
+import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import shared_db
-
-load_dotenv()
-
-# Init DB safely
-shared_db.init_db()
-
+import mycord
 
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+intents.message_content = True  
 
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-EXTENSIONS = [
-    "cogs.help_command",
-    "cogs.admin",
-]
-
-
-# Custom bot class (FIX: proper setup_hook)
-class ShakaBot(commands.Bot):
-    async def setup_hook(self):
-        for ext in EXTENSIONS:
-            try:
-                await self.load_extension(ext)
-                print(f"[SHAKA] Loaded {ext}")
-            except Exception as e:
-                print(f"[SHAKA] Failed to load {ext}: {e}")
-
-
-# Cleaner prefix handler (FIX)
-def prefix(bot, message):
-    return ["shaka ", "Shaka "]
-
-
-bot = ShakaBot(
-    command_prefix=prefix,
-    intents=intents,
-    help_command=None,
-)
-
+async def load_extensions():
+    print("📂 Scanning for cogs...")
+    if os.path.exists("./cogs"):
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                try:
+                    await bot.load_extension(f"cogs.{filename[:-3]}")
+                    print(f"  └─ Loaded cog: {filename}")
+                except Exception as e:
+                    print(f"  ❌ Failed to load cog {filename}: {e}")
+    else:
+        print("⚠️ No 'cogs' folder found.")
 
 @bot.event
 async def on_ready():
-    print(f"[SHAKA] Online as {bot.user} | Satellite 01 — Good (Central DB)")
-    print(f"[SHAKA] DB path: {shared_db.get_db_path()}")
-    print(f"[SHAKA] Guilds: {len(bot.guilds)}")
+    print(f"🤖 Success! Logged in as {bot.user.name}")
+    print("⚡ Bot is online and listening.")
 
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
+async def main():
+    await load_extensions()
+    
+    # Grab the token from the environment securely
+    load_dotenv()
+    token = os.getenv("DISCORD_TOKEN")
+    
+    if not token:
+        print("❌ CRITICAL ERROR: 'DISCORD_TOKEN' environment variable is missing!")
+        print("Please add it to your MonkeyBytes panel variables or your local .env file.")
         return
 
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(
-            f"Missing argument: `{error.param.name}`. Use `shaka help` for usage."
-        )
-    elif isinstance(error, commands.MemberNotFound):
-        await ctx.send("Member not found. Mention them directly.")
-    else:
-        cmd = ctx.command if ctx.command else "Unknown"
-        print(f"[SHAKA] Error in {cmd}: {error}")
+    await bot.start(token)
 
-
-# Token safety check (FIX)
-token = os.getenv("DISCORD_TOKEN")
-if not token:
-    raise RuntimeError("DISCORD_TOKEN not found in environment variables")
-
-
-bot.run(token)
+asyncio.run(main())

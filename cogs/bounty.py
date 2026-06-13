@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import mycord
 import random
-import time
 
 # =========================================
 # DATABASE SETUP
@@ -62,15 +61,6 @@ class Bounty(commands.Cog):
 
         if message.author.bot:
             return
-
-        now = time.time()
-
-        last = self.cooldowns.get(message.author.id, 0)
-
-        if now - last < 30:
-            return
-
-        self.cooldowns[message.author.id] = now
 
         exists = db.exists(
             "bounty",

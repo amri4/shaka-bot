@@ -101,6 +101,7 @@ class Bounty(commands.Cog):
     async def bounty(self, ctx, member: discord.Member = None):
         if member.bot:
             await ctx.send("❌️ Bots don't have bounties")
+            return
 
         member = member or ctx.author
 

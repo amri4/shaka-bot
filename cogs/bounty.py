@@ -58,7 +58,6 @@ class Bounty(commands.Cog):
     async def on_message(self, message):
 
         if message.author.bot:
-            await message.channel.send("bots don't have bounties")
             return
 
         exists = db.exists(
@@ -100,6 +99,8 @@ class Bounty(commands.Cog):
 
     @commands.command()
     async def bounty(self, ctx, member: discord.Member = None):
+        if member.bot:
+            await ctx.send("❌️ Bots don't have bounties")
 
         member = member or ctx.author
 

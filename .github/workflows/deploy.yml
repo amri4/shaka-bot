@@ -3,7 +3,7 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - main # Change this to 'master' if your default branch is master
+      - main
 
 jobs:
   deploy:
@@ -19,12 +19,9 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         known_hosts: 'placeholder'
 
-    # Step 3: Add the server to known hosts using port 2022
     - name: Adding Known Hosts
       run: ssh-keyscan -p 2022 -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-    # Step 4: Deploy with rsync using port 2022
-    # Be sure to change the very end to match your specific server folder!
     - name: Deploy with rsync
       run: |
-        rsync -avz -e "ssh -p 2022" --delete ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/container/
+        rsync -avz -e "ssh -p 2022" --delete ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:./

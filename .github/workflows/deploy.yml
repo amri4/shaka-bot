@@ -27,5 +27,4 @@ jobs:
     # Be sure to change the very end to match your specific server folder!
     - name: Deploy with rsync
       run: |
-        rsync -avz -e "ssh -p 2022" --delete ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/path/to/your/server/folder/
-
+        rsync -avz -e "ssh -p 2022" --delete ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/container/

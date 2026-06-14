@@ -4,7 +4,7 @@ from discord.ext import commands
 class ReactionRoles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = bot.db  # assumes you set bot.db = DB()
+        self.db = mycord.Bot()  # assumes you set bot.db = DB()
 
         # tables
         self.db.create_table(

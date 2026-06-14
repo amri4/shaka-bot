@@ -1,0 +1,25 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: SFTP Deploy
+      uses: wlixcc/SFTP-Deploy-action@v1.2.6
+      with:
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }} # This uses your new API Token
+        server: ${{ secrets.SERVER_HOST }}
+        port: 2022
+        remote_path: './'
+        delete_remote_files: true
+

@@ -12,8 +12,10 @@ db = mycord.Bot()
 db.create_table(
     "bounty",
     """
-    user_id INTEGER PRIMARY KEY,
-    bounty INTEGER
+    guild_id INTEGER,
+    user_id INTEGER,
+    bounty INTEGER,
+    PRIMARY KEY (guild_id, user_id)
     """
 )
 
@@ -50,7 +52,6 @@ class Bounty(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.cooldowns = {}
 
     # =====================================
     # AUTO BOUNTY GAIN
@@ -59,30 +60,30 @@ class Bounty(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
 
-        if message.author.bot:
+        if message.author.bot or not message.guild:
             return
 
         exists = db.exists(
             "bounty",
-            "user_id = ?",
-            (message.author.id,)
+            "guild_id = ? AND user_id = ?",
+            (message.guild.id, message.author.id)
         )
 
         if not exists:
 
             db.insert(
                 "bounty",
-                "user_id, bounty",
-                (message.author.id, 0)
+                "guild_id, user_id, bounty",
+                (message.guild.id, message.author.id, 0)
             )
 
         data = db.fetchone(
             "bounty",
-            "user_id = ?",
-            (message.author.id,)
+            "guild_id = ? AND user_id = ?",
+            (message.guild.id, message.author.id)
         )
 
-        current_bounty = data[1]
+        current_bounty = data[2]
 
         gain = random.randint(5, 20)
 
@@ -91,8 +92,8 @@ class Bounty(commands.Cog):
         db.update(
             "bounty",
             "bounty = ?",
-            "user_id = ?",
-            (new_bounty, message.author.id)
+            "guild_id = ? AND user_id = ?",
+            (new_bounty, message.guild.id, message.author.id)
         )
 
     # =====================================
@@ -110,15 +111,15 @@ class Bounty(commands.Cog):
 
         data = db.fetchone(
             "bounty",
-            "user_id = ?",
-            (member.id,)
+            "guild_id = ? AND user_id = ?",
+            (ctx.guild.id, member.id)
         )
 
         if not data:
             await ctx.send("❌ No bounty found.")
             return
 
-        user_id, bounty = data
+        _, _, bounty = data
 
         milestone = get_milestone(bounty)
 
@@ -142,7 +143,11 @@ class Bounty(commands.Cog):
     @commands.command()
     async def bountylb(self, ctx):
 
-        data = db.fetchall("bounty")
+        data = db.fetchall(
+            "bounty",
+            "guild_id = ?",
+            (ctx.guild.id,)
+        )
 
         if not data:
             await ctx.send("❌ No bounty data found.")
@@ -150,7 +155,7 @@ class Bounty(commands.Cog):
 
         sorted_data = sorted(
             data,
-            key=lambda x: x[1],
+            key=lambda x: x[2],
             reverse=True
         )
 
@@ -160,7 +165,7 @@ class Bounty(commands.Cog):
 
         for index, user in enumerate(sorted_data[:10], start=1):
 
-            user_id, bounty = user
+            _, user_id, bounty = user
 
             member = self.bot.get_user(user_id)
 

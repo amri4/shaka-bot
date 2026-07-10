@@ -164,8 +164,6 @@ class Bounty(commands.Cog):
   
             member = self.bot.get_user(user_id)  
 
-          member = ctx.guild.get_member(user_id)
-
             if member is None:
                 db.delete("bounty", "user_id = ?", (user_id,))
                 continue

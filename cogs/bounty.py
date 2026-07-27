@@ -60,7 +60,9 @@ class Bounty(commands.Cog):
     async def on_message(self, message):  
   
         if message.author.bot:  
-            return  
+            return 
+        if message.content.startswith("!"):
+            return
   
         exists = db.exists(  
             "bounty",  

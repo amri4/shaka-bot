@@ -4,7 +4,7 @@ import json
 import re
 
 import mycord
-from data.characters import CHARACTERS
+from characters import CHARACTERS
 
 db = mycord.Bot()
 

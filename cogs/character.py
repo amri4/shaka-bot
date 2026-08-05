@@ -14,7 +14,7 @@ db.create_table(
 with open("characters.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
-for character in data:
+for character in data["characters"]:
     db.insert(
         "characters",
         "id, name",

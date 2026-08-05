@@ -1,71 +1,108 @@
+# cogs/character.py
+
 import discord
-import random
 from discord.ext import commands
 
+from views.character import CharacterView
+from utils import characters
 
-class Welcome(commands.Cog):
+
+class Character(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    welcome_titles = [
-        "📜 A New Chapter Begins",
-        "🌊 A New Soul Arrives",
-        "⚓ A New Journey Starts",
-        "🌅 A New Dawn Rises",
-        "🏝️ A New Arrival Reaches The Seas",
-        "✨ Another Story Unfolds",
-        "📖 A New Legend Begins",
-        "🚢 The Voyage Expands",
-        "🌎 A New Name Enters The World",
-        "⚔️ A New Path Awaits"
-    ]
+        # Register the persistent button
+        self.bot.add_view(CharacterView())
 
-    welcome_messages = [
-        "The world is vast, and everyone has a role to play. Your journey, your choices, and your legacy are yours to create.",
-        
-        "Every island holds mysteries, every person has a dream. The path you choose will shape the story you leave behind.",
-        
-        "From the East Blue to the New World, countless stories are waiting to be written. Yours begins now.",
-        
-        "The seas are filled with opportunities, dangers, and unforgettable encounters. What will your future hold?",
-        
-        "A new name has entered the world. Whether you seek adventure, justice, freedom, or something else, your journey is yours.",
-        
-        "The world is constantly changing. New alliances will form, rivalries will rise, and legends will be born.",
-        
-        "Every great story starts with a single step. Take yours and discover where the waves will lead you.",
-        
-        "Beyond the horizon lies a world full of possibilities. Your actions will decide the path you follow.",
-        
-        "The Grand Line welcomes another soul. Your dreams, goals, and decisions will define your adventure.",
-        
-        "No matter where your path leads, every choice creates a new chapter in this endless sea of stories."
-    ]
+    @commands.command(
+        name="characterpanel",
+        aliases=["characters", "claimpanel"]
+    )
+    @commands.has_permissions(administrator=True)
+    async def characterpanel(self, ctx):
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        channel = discord.utils.get(member.guild.channels, name="🏯-〘𝗘𝗡𝗧𝗥𝗔𝗡𝗖𝗘-𝗚𝗔𝗧𝗘〙")
-
-        if channel is None:
-            return
-
-        embed = discord.Embed(
-            title=random.choice(self.welcome_titles),
-            description=f"""
-Welcome {member.mention}!
-
-{random.choice(self.welcome_messages)}
-
-🌊 The seas await your arrival.
-""",
-            color=discord.Color.blue()
+        total = len(characters.all())
+        claimed = sum(
+            1
+            for c in characters.all()
+            if c["claimed_by"] is not None
         )
 
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"Welcome to {member.guild.name}")
+        embed = discord.Embed(
+            title="🎭 Character Selection",
+            description=(
+                "Every pirate, marine, revolutionary, and civilian has a story.\n\n"
+                "Press **Claim Character** below to choose the canon character you wish to roleplay.\n\n"
+                "### Rules\n"
+                "• One character per member.\n"
+                "• Every character can only be claimed once.\n"
+                "• Nicknames will automatically update.\n"
+                "• Staff can revoke inactive claims.\n"
+            ),
+            color=0xf4c542
+        )
 
-        await channel.send(embed=embed)
+        embed.add_field(
+            name="📚 Characters",
+            value=f"**{claimed}/{total}** claimed",
+            inline=True
+        )
+
+        embed.add_field(
+            name="🌊 Server",
+            value=ctx.guild.name,
+            inline=True
+        )
+
+        embed.set_footer(
+            text="The seas await your arrival."
+        )
+
+        await ctx.send(
+            embed=embed,
+            view=CharacterView()
+        )
+
+    @commands.command()
+    async def character(self, ctx, *, name=None):
+
+        if name is None:
+            current = characters.get_user_character(ctx.author.id)
+
+            if current is None:
+                return await ctx.send(
+                    "You haven't claimed a character."
+                )
+
+            name = current["name"]
+
+        character = characters.search(name)
+
+        if character is None:
+            return await ctx.send(
+                "Character not found."
+            )
+
+        embed = discord.Embed(
+            title=character["name"],
+            color=0x3498db
+        )
+
+        if character["claimed_by"] is None:
+            embed.description = "✅ Available"
+        else:
+            member = ctx.guild.get_member(
+                character["claimed_by"]
+            )
+
+            embed.description = (
+                f"❌ Claimed by {member.mention}"
+                if member
+                else "❌ Claimed"
+            )
+
+        await ctx.send(embed=embed)
 
 
 async def setup(bot):
-    await bot.add_cog(Welcome(bot))
+    await bot.add_cog(Character(bot))

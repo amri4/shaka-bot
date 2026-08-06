@@ -31,7 +31,11 @@ class Claim(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def addcharacter(self, ctx, *, text):
-        data = db.fetchall("characters")
+        exists = db.exists(
+            "characters",
+            "name = ?",
+            (text,)
+        )
         if data is None:
             db.insert(
                 "characters",

@@ -18,6 +18,21 @@ class Claim(commands.Cog):
 
         print("Claims table ready!")
 
+        db.create_table(
+            "characters",
+            """
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE
+            """
+        )
+
+        print("characters table ready")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def addcharacter(self, ctx, *, text):
+        
+
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

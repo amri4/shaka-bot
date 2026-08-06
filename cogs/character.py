@@ -59,7 +59,8 @@ class Claim(commands.Cog):
         characters = db.fetchall("characters")
         message = "Characters:\n"
         for character in characters:
-            message += f"• {characters[1]}\n"
+            message += f"• {character[1]}\n"
+        await ctx.send(message)
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

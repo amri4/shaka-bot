@@ -3,7 +3,9 @@ import mycord
 
 db = mycord.DB()
 
-
+#==========================================
+#CHARACTER CLAIM CLASS
+#==========================================
 class Claim(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -28,6 +30,9 @@ class Claim(commands.Cog):
 
         print("characters table ready")
 
+    #••••••••••••••••••••••••••••••
+    #ADDING A CHARACTER COMMAND
+    #••••••••••••••••••••••••••••••
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def addcharacter(self, ctx, *, text):

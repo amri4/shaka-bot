@@ -61,9 +61,7 @@ class Bounty(commands.Cog):
   
         if message.author.bot:  
             return 
-        if message.content.startswith("!"):
-            return
-  
+       
         exists = db.exists(  
             "bounty",  
             "user_id = ?",  

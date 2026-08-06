@@ -42,9 +42,12 @@ class Claim(commands.Cog):
         else:
             db.insert(
                 "characters",
-                "name = ?",
+                "name",
                 (text,)
             )
+            await ctx.send(f"✅️ Added **{text}**")
+            print("addcharacter working")
+    print("addcharacter functioning")
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

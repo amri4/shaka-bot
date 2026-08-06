@@ -36,10 +36,13 @@ class Claim(commands.Cog):
             "name = ?",
             (text,)
         )
-        if data is None:
+
+        if exists:
+            await ctx.send("🚫 Character already exists.")
+        else:
             db.insert(
                 "characters",
-                "name",
+                "name = ?",
                 (text,)
             )
 

@@ -54,6 +54,9 @@ class Claim(commands.Cog):
             print("addcharacter working")
     print("addcharacter functioning")
 
+    #••••••••••••••••••••••••••••••
+    #SHOW ALL CHARACTERS
+    #••••••••••••••••••••••••••••••
     @commands.command()
     async def characters(self, ctx):
         characters = db.fetchall("characters")

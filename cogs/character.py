@@ -31,8 +31,13 @@ class Claim(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def addcharacter(self, ctx, *, text):
-        
-
+        data = db.fetchall("characters")
+        if data is None:
+            db.insert(
+                "characters",
+                "name",
+                (text,)
+            )
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

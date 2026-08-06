@@ -54,5 +54,12 @@ class Claim(commands.Cog):
             print("addcharacter working")
     print("addcharacter functioning")
 
+    @commands.command()
+    async def characters(self, ctx):
+        characters = db.fetchall("characters")
+        message = "Characters:\n"
+        for character in characters:
+            message += f"• {characters[1]}\n"
+
 async def setup(bot):
     await bot.add_cog(Claim(bot))

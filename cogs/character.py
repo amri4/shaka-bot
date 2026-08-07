@@ -95,6 +95,7 @@ class Claim(commands.Cog):
         )
         if claimed:
             await ctx.send("❌️ This character is already claimed")
+            return
         db.insert(
             "claims",
             "user_id, character",

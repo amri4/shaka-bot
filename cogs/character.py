@@ -67,5 +67,40 @@ class Claim(commands.Cog):
 
         await ctx.send(message)
 
+    #••••••••••••••••••••••••••••••
+    #CHARACTER CLAIMING COMMAND
+    #••••••••••••••••••••••••••••••
+    @commands.command()
+    async def claim(self, ctx, *, text):
+        exists = db.exists(
+            "characters",
+            "name = ?",
+            (text,)
+        )
+        if not exists:
+            ctx.send("❌️Character not found")
+            return
+        user_exists = db.exists(
+            "claims",
+            "user_id = ?",
+            (ctx.author.id,)
+        )
+        if user_exists:
+            ctx.send("❌️You already claimed a character")
+            return
+        claimed = db.exists(
+            "claims",
+            "character = ?",
+            (text,)
+        )
+        if claimed:
+            await ctx.send("❌️ This character is already claimed")
+        db.insert(
+            "claims",
+            "user_id, character",
+            (ctx.author.id, text)
+        )
+        await ctx.send(f"✅️ You succesfully claimed **{text}**!")
+
 async def setup(bot):
     await bot.add_cog(Claim(bot))

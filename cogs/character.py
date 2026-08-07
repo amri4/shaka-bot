@@ -78,7 +78,7 @@ class Claim(commands.Cog):
             (text,)
         )
         if not exists:
-            ctx.send("❌️Character not found")
+            await ctx.send("❌️Character not found")
             return
         user_exists = db.exists(
             "claims",
@@ -86,7 +86,7 @@ class Claim(commands.Cog):
             (ctx.author.id,)
         )
         if user_exists:
-            ctx.send("❌️You already claimed a character")
+            await ctx.send("❌️You already claimed a character")
             return
         claimed = db.exists(
             "claims",

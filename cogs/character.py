@@ -59,6 +59,7 @@ class Claim(commands.Cog):
     #••••••••••••••••••••••••••••••
     @commands.command()
     async def characters(self, ctx):
+        print("triggered")
         characters = db.fetchall("characters")
         message = "Characters:\n"
         for character in characters:

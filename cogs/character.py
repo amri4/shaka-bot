@@ -30,10 +30,6 @@ class Claim(commands.Cog):
 
         print("characters table ready")
 
-    @commands.Cog.listener()
-async def on_ready(self):
-    print("Loaded commands:", [command.name for command in self.bot.commands])
-
     #••••••••••••••••••••••••••••••
     #ADDING A CHARACTER COMMAND
     #••••••••••••••••••••••••••••••
@@ -62,13 +58,13 @@ async def on_ready(self):
     #SHOW ALL CHARACTERS
     #••••••••••••••••••••••••••••••
     @commands.command()
-    async def characters(self, ctx):
-        print("triggered")
-        characters = db.fetchall("characters")
-        message = "Characters:\n"
-        for character in characters:
-            message += f"• {character[1]}\n"
-        await ctx.send(message)
+async def characters(self, ctx):
+    print("CHARACTERS COMMAND CALLED")
+
+    characters = db.fetchall("characters")
+    print("DATABASE RESULT:", characters)
+
+    await ctx.send("Database checked!")
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

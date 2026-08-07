@@ -58,13 +58,14 @@ class Claim(commands.Cog):
     #SHOW ALL CHARACTERS
     #••••••••••••••••••••••••••••••
     @commands.command()
-    async def characters(self, ctx):
-        print("CHARACTERS COMMAND CALLED")
+async def characters(self, ctx):
+    characters = db.fetchall("characters")
+    message = "Characters:\n"
 
-        characters = db.fetchall("characters")
-        print("DATABASE RESULT:", characters)
+    for character in characters:
+        message += f"• {character[1]}\n"
 
-        await ctx.send("Database checked!")
+    await ctx.send(message)
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

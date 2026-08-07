@@ -30,6 +30,10 @@ class Claim(commands.Cog):
 
         print("characters table ready")
 
+    @commands.Cog.listener()
+async def on_ready(self):
+    print("Loaded commands:", [command.name for command in self.bot.commands])
+
     #••••••••••••••••••••••••••••••
     #ADDING A CHARACTER COMMAND
     #••••••••••••••••••••••••••••••

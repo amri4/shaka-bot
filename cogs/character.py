@@ -172,9 +172,22 @@ class Claim(commands.Cog):
             channel = self.bot.get_channel(data[1])
             message = await channel.fetch_message(data[2])
 
-            await message.edit(
-                content="The permanent claim panel is still here!"
+            claims = db.fetchall("claims")
+
+            if claims:
+                description = ""
+
+                for claim in claims:
+                    description += f"• <@{claim[0]}> — **{claim[1]}**\n"
+            else:
+                description = "No characters have been claimed yet."
+
+            embed = discord.Embed(
+                title="🏴‍☠️ Claimed Characters",
+                description=description
             )
+
+            await message.edit(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

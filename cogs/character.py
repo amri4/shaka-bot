@@ -158,7 +158,7 @@ class Claim(commands.Cog):
             message = await ctx.send(embed=embed)
             db.insert(
                 "claim_panel",
-                "id, channel_id, message_id"
+                "id, channel_id, message_id",
                 (1, ctx.channel.id, message.id)
             )
         else:

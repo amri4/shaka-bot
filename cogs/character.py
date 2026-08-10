@@ -116,7 +116,7 @@ class Claim(commands.Cog):
         claimed = db.exists(
             "claims",
             "character = ?",
-            (text,)
+            (character_name,)
         )
         if claimed:
             await ctx.send("❌️ This character is already claimed")
@@ -124,14 +124,8 @@ class Claim(commands.Cog):
         db.insert(
             "claims",
             "user_id, character",
-            (ctx.author.id, text)
+            (ctx.author.id, character_name)
         )
-        data = db.fetchone(
-            "characters",
-            "name = ?",
-            (text,)
-        )
-        character_name = data[1]
         role = discord.utils.get(ctx.guild.roles, name=character_name)
         if role is None:
             role = await ctx.guild.create_role(name=character_name)

@@ -31,6 +31,17 @@ class Claim(commands.Cog):
 
         print("characters table ready")
 
+        db.create_table(
+            "claim_panel",
+            """
+            id INTEGER PRIMARY KEY,
+            channel_id INTEGER,
+            message_id INTEGER
+            """
+        )
+
+        print("claim panel table ready")
+
     #••••••••••••••••••••••••••••••
     #ADDING A CHARACTER COMMAND
     #••••••••••••••••••••••••••••••
@@ -134,6 +145,18 @@ class Claim(commands.Cog):
         if role:
             await ctx.author.remove_roles(role)
         await ctx.send(f"✅️ You succesfully unclaimed **{character_name}**!")
+
+    @commands.command()
+    async def claimpanel(self.ctx):
+        data = db.fetchone(
+            "claim_panel",
+            "id = ?",
+            (1,)
+        )
+        if data is None:
+            await ctx.send("No claim panel exists yet")
+        else:
+            await ctx.send("a claim panel already exists")
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

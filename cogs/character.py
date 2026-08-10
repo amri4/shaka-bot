@@ -159,10 +159,10 @@ class Claim(commands.Cog):
 
             selected_index = emojis.index(str(reaction.emoji))
             character = matches[selected_index]
-            else:
-                character = matches[0]
+        else:
+            character = matches[0]
 
-                character_name = character[1]
+         character_name = character[1]
 
         
         user_exists = db.exists(

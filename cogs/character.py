@@ -155,9 +155,13 @@ class Claim(commands.Cog):
         )
         if data is None:
             claims = db.fetchall("claims")
-            for claim in claims:
-                print(claim)
-            embed = discord.Embed(title="🏴‍☠️ Claimed Characters", description="No characters have been claimed yet")
+            if claims:
+                description = ""
+                for claim in claims:
+                    description += f"•<@{claim[0]}> — **{claim[1]}**\n"
+            else:
+                description = "No characters have been claimed yet."
+            embed = discord.Embed(title="🏴‍☠️ Claimed Characters", description=description)
             message = await ctx.send(embed=embed)
             db.insert(
                 "claim_panel",

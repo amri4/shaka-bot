@@ -174,17 +174,17 @@ class Claim(commands.Cog):
     async def unclaim(self, ctx):
         data = db.fetchone(
             "claims",
-            "user_id = ?",
-            (ctx.author.id,)
+            "guild_id = ? AND user_id = ?",
+            (ctx.guild.id, ctx.author.id)
         )
         if data is None:
             await ctx.send("❌️ You don't have a claimed character")
             return
-        character_name = data[1]
+        character_name = data[2]
         db.delete(
             "claims",
-            "user_id = ?",
-            (ctx.author.id,)
+            "guild_id = ? AND user_id = ?",
+            (ctx.guild.id, ctx.author.id)
         )
         role = discord.utils.get(ctx.guild.roles, name=character_name)
         if role:

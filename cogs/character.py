@@ -1,5 +1,6 @@
 from discord.ext import commands
 import mycord
+import discord
 
 db = mycord.DB()
 
@@ -112,6 +113,27 @@ class Claim(commands.Cog):
             role = await ctx.guild.create_role(name=character_name)
         await ctx.author.add_roles(role)
         await ctx.send(f"✅️ You succesfully claimed **{text}**!")
+
+    @commands.command()
+    async def unclaim(self, ctx):
+        data = db.fetchone(
+            "claims",
+            "user_id = ?",
+            (ctx.author.id,)
+        )
+        if data is None:
+            await ctx.send("❌️ You don't have a claimed character")
+            return
+        character_name = data[1]
+        db.delete(
+            "claims",
+            "user_id = ?",
+            (ctx.author.id,)
+        )
+        role = discord.utils.get(ctx.guild.roles, name=character_name)
+        if role:
+            await ctx.author.remove_roles(role)
+        await ctx.send(f"✅️ You succesfully unclaimed **{character_name}**!")
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

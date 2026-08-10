@@ -161,6 +161,11 @@ class Claim(commands.Cog):
                 "id, channel_id, message_id",
                 (1, ctx.channel.id, message.id)
             )
+            print("SAVED PANEL:", db.fetchone(
+                "claim_panel",
+                "id = ?",
+                (1,)
+            ))
         else:
             await ctx.send("a claim panel already exists")
 

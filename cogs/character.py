@@ -94,6 +94,7 @@ class Claim(commands.Cog):
     @commands.command()
     async def claim(self, ctx, *, text):
         characters = db.fetchall("characters")
+        input_name = normalize_name(text)
 
         matches = []
 

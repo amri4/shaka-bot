@@ -191,8 +191,8 @@ class Claim(commands.Cog):
             await ctx.author.remove_roles(role)
             data = db.fetchone(
             "claim_panel",
-            "id = ?",
-            (1,)
+            "guild_id = ?",
+            (ctx.guild.id,)
         )
 
         if data:
@@ -200,12 +200,16 @@ class Claim(commands.Cog):
             message = await channel.fetch_message(data[2])
 
             claims = db.fetchall("claims")
+            claims = [
+                claim for claim in claims
+                if claim[0] == ctx.guild.id
+            ]
 
             if claims:
                 description = ""
 
                 for claim in claims:
-                    description += f"• <@{claim[0]}> — **{claim[1]}**\n"
+                    description += f"• <@{claim[1]}> — **{claim[2]}**\n"
             else:
                 description = "No characters have been claimed yet."
 
@@ -221,23 +225,27 @@ class Claim(commands.Cog):
     async def claimpanel(self, ctx):
         data = db.fetchone(
             "claim_panel",
-            "id = ?",
-            (1,)
+            "guild_id = ?",
+            (ctx.guild.id,)
         )
         if data is None:
             claims = db.fetchall("claims")
+            claims = [
+                claim for claim in claims
+                if claim[0] == ctx.guild.id
+            ]
             if claims:
                 description = ""
                 for claim in claims:
-                    description += f"•<@{claim[0]}> — **{claim[1]}**\n"
+                    description += f"•<@{claim[1]}> — **{claim[2]}**\n"
             else:
                 description = "No characters have been claimed yet."
             embed = discord.Embed(title="🏴‍☠️ Claimed Characters", description=description)
             message = await ctx.send(embed=embed)
             db.insert(
                 "claim_panel",
-                "id, channel_id, message_id",
-                (1, ctx.channel.id, message.id)
+                "guild_id, channel_id, message_id",
+                (ctx.guild.id, ctx.channel.id, message.id)
             )
         else:
             channel = self.bot.get_channel(data[1])

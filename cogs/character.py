@@ -167,7 +167,12 @@ class Claim(commands.Cog):
                 (1,)
             ))
         else:
-            await ctx.send("a claim panel already exists")
+            channel = self.bot.get_channel(data[1])
+            message = await channel.fetch_message(data[2])
+
+            await message.edit(
+                content="The permanent claim panel is still here!"
+            )
 
 async def setup(bot):
     await bot.add_cog(Claim(bot))

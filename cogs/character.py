@@ -1,8 +1,14 @@
 from discord.ext import commands
 import mycord
+import re
 import discord
 
 db = mycord.DB()
+
+def normalize_name(name):
+    name = name.lower()
+    name = re.sub(r"[^a-z0-9]", "", name)
+    return name
 
 #==========================================
 #CHARACTER CLAIM CLASS
@@ -149,6 +155,7 @@ class Claim(commands.Cog):
             )
 
             await message.edit(embed=embed)
+        print(normalize_name(text))
         await ctx.send(f"✅️ You succesfully claimed **{character_name}**!")
 
     @commands.command()

@@ -20,8 +20,11 @@ class Claim(commands.Cog):
         db.create_table(
             "claims",
             """
-            user_id INTEGER PRIMARY KEY,
-            character TEXT UNIQUE
+            guild_id INTEGER,
+            user_id INTEGER,
+            character TEXT,
+            UNIQUE(guild_id, user_id),
+            UNIQUE(guild_id, character)
             """
         )
 
@@ -40,7 +43,7 @@ class Claim(commands.Cog):
         db.create_table(
             "claim_panel",
             """
-            id INTEGER PRIMARY KEY,
+            guild_id INTEGER PRIMARY KEY,
             channel_id INTEGER,
             message_id INTEGER
             """
@@ -107,24 +110,24 @@ class Claim(commands.Cog):
         character_name = character[1]
         user_exists = db.exists(
             "claims",
-            "user_id = ?",
-            (ctx.author.id,)
+            "guild_id = ? AND user_id = ?",
+            (ctx.guild.id, ctx.author.id)
         )
         if user_exists:
             await ctx.send("❌️You already claimed a character")
             return
         claimed = db.exists(
             "claims",
-            "character = ?",
-            (character_name,)
+            "guild_id = ? AND character = ?",
+            (ctx.guild.id, character_name)
         )
         if claimed:
             await ctx.send("❌️ This character is already claimed")
             return
         db.insert(
             "claims",
-            "user_id, character",
-            (ctx.author.id, character_name)
+            "guild_id, user_id, character",
+            (ctx.guild.id, ctx.author.id, character_name)
         )
         role = discord.utils.get(ctx.guild.roles, name=character_name)
         if role is None:

@@ -162,7 +162,7 @@ class Claim(commands.Cog):
         else:
             character = matches[0]
 
-         character_name = character[1]
+        character_name = character[1]
 
         
         user_exists = db.exists(

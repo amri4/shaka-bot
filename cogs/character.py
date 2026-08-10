@@ -115,17 +115,56 @@ class Claim(commands.Cog):
             return
 
         if len(matches) > 1:
-            names = "\n".join(f"• {row[1]}" for row in matches)
+            emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣",
+                      "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
-            await ctx.send(
-                f"❌️ Multiple characters match **{text}**:\n{names}\n"
-                "Please use the full character name."
+            matches = matches[:10]
+
+            description = ""
+
+            for i, row in enumerate(matches):
+                description += f"{emojis[i]} **{row[1]}**\n"
+
+            embed = discord.Embed(
+                title="🏴‍☠️ Which character do you mean?",
+                description=description
             )
-            return
 
-        character = matches[0]
+            message = await ctx.send(embed=embed)
 
-        character_name = character[1]
+            for emoji in emojis[:len(matches)]:
+                await message.add_reaction(emoji)
+
+            def check(reaction, user):
+                return (
+                    user == ctx.author
+                    and reaction.message.id == message.id
+                    and str(reaction.emoji) in emojis[:len(matches)]
+                )
+
+            try:
+                reaction, user = await self.bot.wait_for(
+                    "reaction_add",
+                    timeout=30,
+                    check=check
+                )
+            except TimeoutError:
+                await message.edit(
+                    embed=discord.Embed(
+                        title="⏱️ Selection expired",
+                        description="You didn't choose a character in time."
+                    )
+                )
+                return
+
+            selected_index = emojis.index(str(reaction.emoji))
+            character = matches[selected_index]
+            else:
+                character = matches[0]
+
+                character_name = character[1]
+
+        
         user_exists = db.exists(
             "claims",
             "guild_id = ? AND user_id = ?",

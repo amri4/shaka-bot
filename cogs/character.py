@@ -147,7 +147,7 @@ class Claim(commands.Cog):
         await ctx.send(f"✅️ You succesfully unclaimed **{character_name}**!")
 
     @commands.command()
-    async def claimpanel(self.ctx):
+    async def claimpanel(self, ctx):
         data = db.fetchone(
             "claim_panel",
             "id = ?",

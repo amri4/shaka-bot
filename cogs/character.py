@@ -154,7 +154,8 @@ class Claim(commands.Cog):
             (1,)
         )
         if data is None:
-            await ctx.send("No claim panel exists yet")
+            embed = discord.Embed(title="🏴‍☠️ Claimed Characters", description="No characters have been claimed yet")
+            message = await ctx.send(embed=embed)
         else:
             await ctx.send("a claim panel already exists")
 

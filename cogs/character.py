@@ -252,12 +252,16 @@ class Claim(commands.Cog):
             message = await channel.fetch_message(data[2])
 
             claims = db.fetchall("claims")
+            claims = [
+                claim for claim in claims
+                if claim[0] == ctx.guild.id
+            ]
 
             if claims:
                 description = ""
 
                 for claim in claims:
-                    description += f"• <@{claim[0]}> — **{claim[1]}**\n"
+                    description += f"• <@{claim[1]}> — **{claim[2]}**\n"
             else:
                 description = "No characters have been claimed yet."
 

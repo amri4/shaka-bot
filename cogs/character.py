@@ -95,17 +95,34 @@ class Claim(commands.Cog):
     async def claim(self, ctx, *, text):
         characters = db.fetchall("characters")
 
-        exists = False
-        character = None
-        for row in characters:
-            if normalize_name(row[1]) == normalize_name(text):
-                exists = True
-                character = row
-                break
+        matches = []
 
-        if not exists:
+        for row in characters:
+            full_name = normalize_name(row[1])
+            input_name = normalize_name(text)
+
+            parts = [
+                normalize_name(part)
+                for part in row[1].split()
+            ]
+
+            if full_name == input_name or input_name == parts[-1]:
+                matches.append(row)
+
+        if not matches:
             await ctx.send("❌️ Character not found")
             return
+
+        if len(matches) > 1:
+            names = "\n".join(f"• {row[1]}" for row in matches)
+
+            await ctx.send(
+                f"❌️ Multiple characters match **{text}**:\n{names}\n"
+                "Please use the full character name."
+            )
+            return
+
+        character = matches[0]
 
         character_name = character[1]
         user_exists = db.exists(

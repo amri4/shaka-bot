@@ -130,6 +130,7 @@ class Claim(commands.Cog):
         if role is None:
             role = await ctx.guild.create_role(name=character_name)
         await ctx.author.add_roles(role)
+        await ctx.author.edit(nick=character_name)
         data = db.fetchone(
             "claim_panel",
             "id = ?",

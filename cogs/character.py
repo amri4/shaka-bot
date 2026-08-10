@@ -154,6 +154,9 @@ class Claim(commands.Cog):
             (1,)
         )
         if data is None:
+            claims = db.fetchall("claims")
+            for claim in claims:
+                print(claim)
             embed = discord.Embed(title="🏴‍☠️ Claimed Characters", description="No characters have been claimed yet")
             message = await ctx.send(embed=embed)
             db.insert(
@@ -161,11 +164,6 @@ class Claim(commands.Cog):
                 "id, channel_id, message_id",
                 (1, ctx.channel.id, message.id)
             )
-            print("SAVED PANEL:", db.fetchone(
-                "claim_panel",
-                "id = ?",
-                (1,)
-            ))
         else:
             channel = self.bot.get_channel(data[1])
             message = await channel.fetch_message(data[2])

@@ -189,6 +189,7 @@ class Claim(commands.Cog):
         role = discord.utils.get(ctx.guild.roles, name=character_name)
         if role:
             await ctx.author.remove_roles(role)
+            await ctx.author.edit(nick=None)
             data = db.fetchone(
             "claim_panel",
             "guild_id = ?",

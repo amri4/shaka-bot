@@ -90,14 +90,21 @@ class Claim(commands.Cog):
     #••••••••••••••••••••••••••••••
     @commands.command()
     async def claim(self, ctx, *, text):
-        exists = db.exists(
-            "characters",
-            "name = ?",
-            (text,)
-        )
+        characters = db.fetchall("characters")
+
+        exists = False
+        character = None
+        for row in characters:
+            if normalize_name(row[1]) == normalize_name(text):
+                exists = True
+                character = row
+                break
+
         if not exists:
-            await ctx.send("❌️Character not found")
+            await ctx.send("❌️ Character not found")
             return
+
+        character_name = character[1]
         user_exists = db.exists(
             "claims",
             "user_id = ?",

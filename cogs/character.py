@@ -101,6 +101,16 @@ class Claim(commands.Cog):
             "user_id, character",
             (ctx.author.id, text)
         )
+        data = db.fetchone(
+            "characters",
+            "name = ?",
+            (text,)
+        )
+        character_name = data[1]
+        role = discord.utils.get(ctx.guild.roles, name=character_name)
+        if role is None:
+            role = await ctx.guild.create_role(name=character_name)
+        await ctx.author.add_roles(role)
         await ctx.send(f"✅️ You succesfully claimed **{text}**!")
 
 async def setup(bot):

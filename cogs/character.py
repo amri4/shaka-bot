@@ -170,6 +170,32 @@ class Claim(commands.Cog):
         role = discord.utils.get(ctx.guild.roles, name=character_name)
         if role:
             await ctx.author.remove_roles(role)
+            data = db.fetchone(
+            "claim_panel",
+            "id = ?",
+            (1,)
+        )
+
+        if data:
+            channel = self.bot.get_channel(data[1])
+            message = await channel.fetch_message(data[2])
+
+            claims = db.fetchall("claims")
+
+            if claims:
+                description = ""
+
+                for claim in claims:
+                    description += f"• <@{claim[0]}> — **{claim[1]}**\n"
+            else:
+                description = "No characters have been claimed yet."
+
+            embed = discord.Embed(
+                title="🏴‍☠️ Claimed Characters",
+                description=description
+            )
+
+            await message.edit(embed=embed)
         await ctx.send(f"✅️ You succesfully unclaimed **{character_name}**!")
 
     @commands.command()

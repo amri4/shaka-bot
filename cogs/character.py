@@ -65,7 +65,7 @@ class Claim(commands.Cog):
         print("Claim panel table ready!")
 
     # ==========================================
-    # UPDATE CURRENT CLAIM PANEL
+    # UPDATE CLAIM PANEL
     # ==========================================
     async def update_panel(self, guild_id):
 
@@ -75,7 +75,6 @@ class Claim(commands.Cog):
             (guild_id,)
         )
 
-        # No panel has been created yet
         if data is None:
             return
 
@@ -98,10 +97,6 @@ class Claim(commands.Cog):
             if claim[0] == guild_id
         ]
 
-        # ==========================================
-        # BUILD DESCRIPTION
-        # ==========================================
-
         if claims:
 
             description = ""
@@ -114,10 +109,6 @@ class Claim(commands.Cog):
         else:
 
             description = "No characters have been claimed yet."
-
-        # ==========================================
-        # CREATE EMBED
-        # ==========================================
 
         embed = discord.Embed(
             title="🏴‍☠️ Claimed Characters",
@@ -140,9 +131,11 @@ class Claim(commands.Cog):
         )
 
         if exists:
+
             await ctx.send(
                 "🚫 Character already exists."
             )
+
             return
 
         db.insert(
@@ -164,9 +157,11 @@ class Claim(commands.Cog):
         characters = db.fetchall("characters")
 
         if not characters:
+
             await ctx.send(
                 "❌ No characters have been added."
             )
+
             return
 
         message = "🏴‍☠️ **Characters:**\n\n"
@@ -189,7 +184,7 @@ class Claim(commands.Cog):
         matches = []
 
         # ==========================================
-        # FIND ALL MATCHES
+        # FIND MATCHES
         # ==========================================
 
         for row in characters:
@@ -198,25 +193,50 @@ class Claim(commands.Cog):
 
             full_name = normalize_name(character_name)
 
-            parts = [
-                normalize_name(part)
-                for part in character_name.split()
-            ]
-
             # --------------------------------------
-            # FULL NAME
+            # EXACT FULL NAME
             # --------------------------------------
 
             if input_name == full_name:
+
                 matches.append(row)
+
                 continue
 
             # --------------------------------------
-            # ANY WORD / LAST NAME
+            # CHECK INDIVIDUAL WORDS
             # --------------------------------------
 
-            if input_name in parts:
+            parts = re.findall(
+                r"[a-zA-Z0-9]+",
+                character_name.lower()
+            )
+
+            normalized_parts = [
+                normalize_name(part)
+                for part in parts
+            ]
+
+            if input_name in normalized_parts:
+
                 matches.append(row)
+
+        # ==========================================
+        # REMOVE DUPLICATES
+        # ==========================================
+
+        unique_matches = []
+
+        for row in matches:
+
+            if not any(
+                existing[0] == row[0]
+                for existing in unique_matches
+            ):
+
+                unique_matches.append(row)
+
+        matches = unique_matches
 
         # ==========================================
         # NO MATCH
@@ -229,22 +249,6 @@ class Claim(commands.Cog):
             )
 
             return
-
-        # ==========================================
-        # REMOVE DUPLICATES
-        # ==========================================
-
-        unique_matches = []
-
-        for row in matches:
-
-            if row[0] not in [
-                existing[0]
-                for existing in unique_matches
-            ]:
-                unique_matches.append(row)
-
-        matches = unique_matches
 
         # ==========================================
         # MULTIPLE MATCHES
@@ -265,7 +269,6 @@ class Claim(commands.Cog):
                 "🔟"
             ]
 
-            # Maximum 10 options
             matches = matches[:10]
 
             description = ""
@@ -296,16 +299,19 @@ class Claim(commands.Cog):
             for emoji in emojis[:len(matches)]:
 
                 try:
+
                     await message.add_reaction(emoji)
 
                 except discord.Forbidden:
+
                     await ctx.send(
                         "❌ I don't have permission to add reactions."
                     )
+
                     return
 
             # ==========================================
-            # REACTION CHECK
+            # WAIT FOR USER SELECTION
             # ==========================================
 
             def check(reaction, user):
@@ -317,10 +323,6 @@ class Claim(commands.Cog):
                     in emojis[:len(matches)]
                 )
 
-            # ==========================================
-            # WAIT FOR SELECTION
-            # ==========================================
-
             try:
 
                 reaction, user = await self.bot.wait_for(
@@ -331,16 +333,14 @@ class Claim(commands.Cog):
 
             except asyncio.TimeoutError:
 
-                embed = discord.Embed(
-                    title="⏱️ Selection expired",
-                    description=(
-                        "You didn't choose a character "
-                        "within 30 seconds."
-                    )
-                )
-
                 await message.edit(
-                    embed=embed
+                    embed=discord.Embed(
+                        title="⏱️ Selection expired",
+                        description=(
+                            "You didn't choose a character "
+                            "within 30 seconds."
+                        )
+                    )
                 )
 
                 return
@@ -514,10 +514,6 @@ class Claim(commands.Cog):
             )
         )
 
-        # ==========================================
-        # NO CLAIM
-        # ==========================================
-
         if data is None:
 
             await ctx.send(
@@ -554,9 +550,7 @@ class Claim(commands.Cog):
 
             try:
 
-                await ctx.author.remove_roles(
-                    role
-                )
+                await ctx.author.remove_roles(role)
 
             except discord.Forbidden:
 
@@ -589,7 +583,7 @@ class Claim(commands.Cog):
         )
 
         # ==========================================
-        # SUCCESS MESSAGE
+        # SUCCESS
         # ==========================================
 
         await ctx.send(
@@ -603,10 +597,6 @@ class Claim(commands.Cog):
     @commands.command()
     async def claimpanel(self, ctx):
 
-        # ==========================================
-        # GET CURRENT CLAIMS
-        # ==========================================
-
         claims = db.fetchall("claims")
 
         claims = [
@@ -614,10 +604,6 @@ class Claim(commands.Cog):
             for claim in claims
             if claim[0] == ctx.guild.id
         ]
-
-        # ==========================================
-        # BUILD DESCRIPTION
-        # ==========================================
 
         if claims:
 
@@ -636,7 +622,7 @@ class Claim(commands.Cog):
             )
 
         # ==========================================
-        # CREATE NEW PANEL
+        # CREATE PANEL
         # ==========================================
 
         embed = discord.Embed(
@@ -649,7 +635,7 @@ class Claim(commands.Cog):
         )
 
         # ==========================================
-        # SAVE THIS AS THE CURRENT PANEL
+        # SAVE PANEL
         # ==========================================
 
         old_panel = db.fetchone(

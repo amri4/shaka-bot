@@ -207,7 +207,7 @@ class Claim(commands.Cog):
             # FULL NAME
             # --------------------------------------
 
-            if full_name == input_name:
+            if input_name == full_name:
                 matches.append(row)
                 continue
 

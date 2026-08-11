@@ -167,6 +167,7 @@ class Claim(commands.Cog):
         message = "🏴‍☠️ **Characters:**\n\n"
 
         for character in characters:
+
             message += f"• {character[1]}\n"
 
         await ctx.send(message)
@@ -177,194 +178,228 @@ class Claim(commands.Cog):
     @commands.command()
     async def claim(self, ctx, *, text):
 
+        # ==========================================
+        # GET CHARACTERS
+        # ==========================================
+
         characters = db.fetchall("characters")
 
-        input_name = normalize_name(text)
-
-        matches = []
-
-        # ==========================================
-        # FIND MATCHES
-        # ==========================================
-
-        for row in characters:
-
-            character_name = row[1]
-
-            full_name = normalize_name(character_name)
-
-            # --------------------------------------
-            # EXACT FULL NAME
-            # --------------------------------------
-
-            if input_name == full_name:
-
-                matches.append(row)
-
-                continue
-
-            # --------------------------------------
-            # CHECK INDIVIDUAL WORDS
-            # --------------------------------------
-
-            parts = re.findall(
-                r"[a-zA-Z0-9]+",
-                character_name.lower()
-            )
-
-            normalized_parts = [
-                normalize_name(part)
-                for part in parts
-            ]
-
-            if input_name in normalized_parts:
-
-                matches.append(row)
-
-        # ==========================================
-        # REMOVE DUPLICATES
-        # ==========================================
-
-        unique_matches = []
-
-        for row in matches:
-
-            if not any(
-                existing[0] == row[0]
-                for existing in unique_matches
-            ):
-
-                unique_matches.append(row)
-
-        matches = unique_matches
-
-        # ==========================================
-        # NO MATCH
-        # ==========================================
-
-        if not matches:
+        if not characters:
 
             await ctx.send(
-                f"❌ Character **{text}** not found."
+                "❌ No characters have been added."
             )
 
             return
 
         # ==========================================
-        # MULTIPLE MATCHES
+        # NORMALIZE USER INPUT
         # ==========================================
 
-        if len(matches) > 1:
+        input_name = normalize_name(text)
 
-            emojis = [
-                "1️⃣",
-                "2️⃣",
-                "3️⃣",
-                "4️⃣",
-                "5️⃣",
-                "6️⃣",
-                "7️⃣",
-                "8️⃣",
-                "9️⃣",
-                "🔟"
-            ]
+        if not input_name:
 
-            matches = matches[:10]
-
-            description = ""
-
-            for i, row in enumerate(matches):
-
-                description += (
-                    f"{emojis[i]} **{row[1]}**\n"
-                )
-
-            embed = discord.Embed(
-                title="🏴‍☠️ Which character do you mean?",
-                description=description
+            await ctx.send(
+                "❌ Please enter a character name."
             )
 
-            embed.set_footer(
-                text="React with the number of the character you want."
-            )
+            return
 
-            message = await ctx.send(
-                embed=embed
-            )
+        # ==========================================
+        # FIND EXACT FULL NAME
+        # ==========================================
+
+        exact_match = None
+
+        for row in characters:
+
+            character_name = row[1]
+
+            if normalize_name(character_name) == input_name:
+
+                exact_match = row
+                break
+
+        # ==========================================
+        # EXACT FULL NAME FOUND
+        # ==========================================
+
+        if exact_match is not None:
+
+            character = exact_match
+
+        else:
 
             # ==========================================
-            # ADD REACTIONS
+            # FIND EXACT WORD MATCHES
             # ==========================================
 
-            for emoji in emojis[:len(matches)]:
+            matches = []
 
-                try:
+            for row in characters:
 
-                    await message.add_reaction(emoji)
+                character_name = row[1]
 
-                except discord.Forbidden:
-
-                    await ctx.send(
-                        "❌ I don't have permission to add reactions."
-                    )
-
-                    return
-
-            # ==========================================
-            # WAIT FOR USER SELECTION
-            # ==========================================
-
-            def check(reaction, user):
-
-                return (
-                    user.id == ctx.author.id
-                    and reaction.message.id == message.id
-                    and str(reaction.emoji)
-                    in emojis[:len(matches)]
+                # Get words from the ORIGINAL character name
+                words = re.findall(
+                    r"[a-zA-Z0-9]+",
+                    character_name.lower()
                 )
 
-            try:
+                normalized_words = [
+                    normalize_name(word)
+                    for word in words
+                ]
 
-                reaction, user = await self.bot.wait_for(
-                    "reaction_add",
-                    timeout=30,
-                    check=check
-                )
+                # IMPORTANT:
+                # Only an exact word can match.
+                #
+                # luffy matches:
+                # MONKEY D. LUFFY
+                # DEMALO BLACK (FAKE LUFFY)
+                #
+                # but the full name above has already
+                # been checked first.
 
-            except asyncio.TimeoutError:
+                if input_name in normalized_words:
 
-                await message.edit(
-                    embed=discord.Embed(
-                        title="⏱️ Selection expired",
-                        description=(
-                            "You didn't choose a character "
-                            "within 30 seconds."
-                        )
-                    )
+                    matches.append(row)
+
+            # ==========================================
+            # NO MATCH
+            # ==========================================
+
+            if not matches:
+
+                await ctx.send(
+                    f"❌ Character **{text}** not found."
                 )
 
                 return
 
             # ==========================================
-            # GET SELECTED CHARACTER
+            # ONLY ONE WORD MATCH
             # ==========================================
 
-            selected_index = emojis.index(
-                str(reaction.emoji)
-            )
+            if len(matches) == 1:
 
-            character = matches[selected_index]
+                character = matches[0]
+
+            # ==========================================
+            # MULTIPLE WORD MATCHES
+            # ==========================================
+
+            else:
+
+                emojis = [
+                    "1️⃣",
+                    "2️⃣",
+                    "3️⃣",
+                    "4️⃣",
+                    "5️⃣",
+                    "6️⃣",
+                    "7️⃣",
+                    "8️⃣",
+                    "9️⃣",
+                    "🔟"
+                ]
+
+                matches = matches[:10]
+
+                description = ""
+
+                for i, row in enumerate(matches):
+
+                    description += (
+                        f"{emojis[i]} **{row[1]}**\n"
+                    )
+
+                embed = discord.Embed(
+                    title="🏴‍☠️ Which character do you mean?",
+                    description=description
+                )
+
+                embed.set_footer(
+                    text="React with the number of the character you want."
+                )
+
+                message = await ctx.send(
+                    embed=embed
+                )
+
+                # ==========================================
+                # ADD REACTIONS
+                # ==========================================
+
+                for emoji in emojis[:len(matches)]:
+
+                    try:
+
+                        await message.add_reaction(
+                            emoji
+                        )
+
+                    except discord.Forbidden:
+
+                        await ctx.send(
+                            "❌ I don't have permission "
+                            "to add reactions."
+                        )
+
+                        return
+
+                # ==========================================
+                # REACTION CHECK
+                # ==========================================
+
+                def check(reaction, user):
+
+                    return (
+                        user.id == ctx.author.id
+                        and reaction.message.id == message.id
+                        and str(reaction.emoji)
+                        in emojis[:len(matches)]
+                    )
+
+                # ==========================================
+                # WAIT FOR SELECTION
+                # ==========================================
+
+                try:
+
+                    reaction, user = await self.bot.wait_for(
+                        "reaction_add",
+                        timeout=30,
+                        check=check
+                    )
+
+                except asyncio.TimeoutError:
+
+                    await message.edit(
+                        embed=discord.Embed(
+                            title="⏱️ Selection expired",
+                            description=(
+                                "You didn't choose a "
+                                "character within 30 seconds."
+                            )
+                        )
+                    )
+
+                    return
+
+                # ==========================================
+                # GET SELECTED CHARACTER
+                # ==========================================
+
+                selected_index = emojis.index(
+                    str(reaction.emoji)
+                )
+
+                character = matches[selected_index]
 
         # ==========================================
-        # ONLY ONE MATCH
-        # ==========================================
-
-        else:
-
-            character = matches[0]
-
-        # ==========================================
-        # GET CHARACTER NAME
+        # SELECTED CHARACTER
         # ==========================================
 
         character_name = character[1]
@@ -458,7 +493,9 @@ class Claim(commands.Cog):
 
             try:
 
-                await ctx.author.add_roles(role)
+                await ctx.author.add_roles(
+                    role
+                )
 
             except discord.Forbidden:
 
@@ -483,7 +520,7 @@ class Claim(commands.Cog):
             )
 
         # ==========================================
-        # AUTOMATICALLY UPDATE PANEL
+        # UPDATE PANEL
         # ==========================================
 
         await self.update_panel(
@@ -550,7 +587,9 @@ class Claim(commands.Cog):
 
             try:
 
-                await ctx.author.remove_roles(role)
+                await ctx.author.remove_roles(
+                    role
+                )
 
             except discord.Forbidden:
 
@@ -571,11 +610,11 @@ class Claim(commands.Cog):
         except discord.Forbidden:
 
             print(
-                "Cannot reset nickname."
+                "Cannot change nickname."
             )
 
         # ==========================================
-        # AUTOMATICALLY UPDATE PANEL
+        # UPDATE PANEL
         # ==========================================
 
         await self.update_panel(
@@ -635,7 +674,7 @@ class Claim(commands.Cog):
         )
 
         # ==========================================
-        # SAVE PANEL
+        # MAKE THIS THE ACTIVE PANEL
         # ==========================================
 
         old_panel = db.fetchone(

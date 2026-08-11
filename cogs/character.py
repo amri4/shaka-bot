@@ -373,6 +373,7 @@ class Claim(commands.Cog):
                         timeout=30,
                         check=check
                     )
+                    await message.delete()
 
                 except asyncio.TimeoutError:
 

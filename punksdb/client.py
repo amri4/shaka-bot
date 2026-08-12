@@ -5,7 +5,7 @@ class DB:
 
     def __init__(self):
         self.url = "http://us.monkey-network.xyz:5002"
-        self.key = "YOUR_PUNKSDB_KEY"
+        self.key = "a1282010"
 
     def _request(self, action, **data):
 

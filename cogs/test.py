@@ -1,5 +1,8 @@
 from discord.ext import commands
-from punksdb import db
+import mycord
+
+
+db = mycord.PunksDB()
 
 
 class PunksDBTest(commands.Cog):
@@ -14,17 +17,13 @@ class PunksDBTest(commands.Cog):
 
             db.create_table(
                 "test",
-                {
-                    "id": "INTEGER PRIMARY KEY",
-                    "message": "TEXT"
-                }
+                "id INTEGER PRIMARY KEY, message TEXT"
             )
 
             db.insert(
                 "test",
-                {
-                    "message": "PunksDB works!"
-                }
+                "message",
+                ("PunksDB works!",)
             )
 
             result = db.fetchone(

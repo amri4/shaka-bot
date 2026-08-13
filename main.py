@@ -8,7 +8,7 @@ import mycord
 intents = discord.Intents.default()
 intents.message_content = True  
 
-bot = commands.Bot(command_prefix="Shaka", intents=intents)
+bot = commands.Bot(command_prefix="Shaka ", intents=intents)
 
 async def load_extensions():
     print("📂 Scanning for cogs...")

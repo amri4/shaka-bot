@@ -4,7 +4,7 @@ import re
 import discord
 import asyncio
 
-db = mycord.DB()
+db = mycord.PunksDB()
 
 
 def normalize_name(name):

@@ -1,7 +1,7 @@
+from config import BOT_PREFIX
+
 def get_prefix(bot, message):
-    name = bot.user.name
+    if message.content.lower().startswith(BOT_PREFIX.lower()):
+        return message.content[:len(BOT_PREFIX)]
 
-    if message.content.lower().startswith(name.lower()):
-        return message.content[:len(name)]
-
-    return name
+    return []

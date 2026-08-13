@@ -7,7 +7,7 @@ import random
 # DATABASE SETUP  
 # =========================================  
   
-db = mycord.Bot()  
+db = mycord.PunksDB()  
   
 db.create_table(  
     "bounty",  

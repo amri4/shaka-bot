@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands  
 import mycord  
 import random  
+from utils.command import command
   
 # =========================================  
 # DATABASE SETUP  
@@ -99,7 +100,7 @@ class Bounty(commands.Cog):
     # VIEW BOUNTY  
     # =====================================  
   
-    @commands.command()  
+    @command("💰Bounty", "Check your or other members bounty")  
     async def bounty(self, ctx, member: discord.Member = None):  
   
         member = member or ctx.author  
@@ -139,7 +140,7 @@ class Bounty(commands.Cog):
     # LEADERBOARD  
     # =====================================  
   
-    @commands.command()  
+    @command("💰Bounty", "Server's bounty leaderboard")  
     async def bountylb(self, ctx):  
   
         data = db.fetchall("bounty")  

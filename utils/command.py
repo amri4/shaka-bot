@@ -3,6 +3,8 @@ from discord.ext import commands
 
 def command(category, description, **kwargs):
     def decorator(func):
+        func.help_category = category
+
         cmd = commands.command(
             description=description,
             **kwargs

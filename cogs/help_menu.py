@@ -117,6 +117,8 @@ class Help(commands.Cog):
 
     @commands.command()
     async def help(self, ctx):
+        for cmd in self.bot.commands:
+            print(cmd.name, getattr(cmd, "help_category", None))
         view = HelpView(self.bot)
 
         await ctx.send(

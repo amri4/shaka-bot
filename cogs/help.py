@@ -5,32 +5,50 @@ from discord.ext import commands
 class HelpView(discord.ui.View):
 
     def __init__(self, bot):
-        super().__init__(timeout=120)
+        super().__init__(timeout=None)
 
         self.bot = bot
         self.categories = {}
 
+        # ==============================
+        # FIND COMMANDS AUTOMATICALLY
+        # ==============================
+
         for cmd in bot.commands:
+
             if cmd.hidden:
                 continue
 
-            category = getattr(cmd, "help_category", None)
+            category = cmd.extras.get("help_category")
 
             if category:
-                self.categories.setdefault(category, []).append(cmd)
+                self.categories.setdefault(
+                    category,
+                    []
+                ).append(cmd)
 
         self.add_item(HelpSelect(self))
 
+    # ==============================
+    # HOME PAGE
+    # ==============================
+
     def home_embed(self):
+
         total_commands = sum(
-            len(commands_list)
-            for commands_list in self.categories.values()
+            len(command_list)
+            for command_list in self.categories.values()
         )
 
-        category_text = "\n".join(
-            f"• {category}"
-            for category in sorted(self.categories)
-        ) or "No categories."
+        if self.categories:
+
+            category_text = "\n".join(
+                f"• {category}"
+                for category in sorted(self.categories)
+            )
+
+        else:
+            category_text = "No categories."
 
         embed = discord.Embed(
             title=f"{self.bot.user.name} Help",
@@ -49,18 +67,25 @@ class HelpView(discord.ui.View):
 
         embed.add_field(
             name="⚡ Commands",
-            value=str(total_commands)
+            value=str(total_commands),
+            inline=True
         )
 
         return embed
 
+    # ==============================
+    # CATEGORY PAGE
+    # ==============================
+
     def category_embed(self, category):
+
         embed = discord.Embed(
             title=category,
             color=discord.Color.blue()
         )
 
         for cmd in self.categories[category]:
+
             embed.add_field(
                 name=cmd.name,
                 value=cmd.description or "No description.",
@@ -70,9 +95,14 @@ class HelpView(discord.ui.View):
         return embed
 
 
+# ==================================
+# SELECT MENU
+# ==================================
+
 class HelpSelect(discord.ui.Select):
 
     def __init__(self, help_view):
+
         self.help_view = help_view
 
         options = [
@@ -84,10 +114,11 @@ class HelpSelect(discord.ui.Select):
         ]
 
         for category in sorted(help_view.categories):
+
             options.append(
                 discord.SelectOption(
-                    label=category,
-                    value=category
+                    label=category[:100],
+                    value=category[:100]
                 )
             )
 
@@ -97,18 +128,28 @@ class HelpSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction):
+
         category = self.values[0]
 
         if category == "__home__":
+
             embed = self.help_view.home_embed()
+
         else:
-            embed = self.help_view.category_embed(category)
+
+            embed = self.help_view.category_embed(
+                category
+            )
 
         await interaction.response.edit_message(
             embed=embed,
             view=self.help_view
         )
 
+
+# ==================================
+# HELP COG
+# ==================================
 
 class Help(commands.Cog):
 
@@ -117,8 +158,7 @@ class Help(commands.Cog):
 
     @commands.command()
     async def help(self, ctx):
-        for cmd in self.bot.commands:
-            print(cmd.name, getattr(cmd, "help_category", None))
+
         view = HelpView(self.bot)
 
         await ctx.send(

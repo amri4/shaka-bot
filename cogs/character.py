@@ -2,6 +2,7 @@ from discord.ext import commands
 import mycord
 import re
 import discord
+from utils.command import command
 import asyncio
 
 db = mycord.PunksDB()
@@ -175,7 +176,7 @@ class Claim(commands.Cog):
     # ==========================================
     # CLAIM
     # ==========================================
-    @commands.command()
+    @command("👤 CHARACTERS", "Claim a onepiece character")
     async def claim(self, ctx, *, text):
 
         # ==========================================
@@ -540,7 +541,7 @@ class Claim(commands.Cog):
     # ==========================================
     # UNCLAIM
     # ==========================================
-    @commands.command()
+    @command("👤 CHARACTERS", "Unclaim your current character")
     async def unclaim(self, ctx):
 
         data = db.fetchone(
@@ -634,7 +635,7 @@ class Claim(commands.Cog):
     # ==========================================
     # CLAIM PANEL
     # ==========================================
-    @commands.command()
+    @command("👤 CHARACTERS", "Shows all current claimed characters")
     async def claimpanel(self, ctx):
 
         claims = db.fetchall("claims")

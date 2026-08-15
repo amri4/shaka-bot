@@ -20,7 +20,9 @@ class HelpView(discord.ui.View):
             if cmd.hidden:
                 continue
 
-            category = cmd.extras.get("help_category")
+            category = cmd.extras.get(
+                "help_category"
+            )
 
             if category:
                 self.categories.setdefault(
@@ -28,13 +30,51 @@ class HelpView(discord.ui.View):
                     []
                 ).append(cmd)
 
-        self.add_item(HelpSelect(self))
+        self.add_item(
+            HelpSelect(self)
+        )
 
     # =========================================
     # GET COMMAND USAGE
     # =========================================
 
     def get_usage(self, cmd):
+
+        # =====================================
+        # CUSTOM USAGE
+        # =====================================
+
+        custom_usage = cmd.extras.get(
+            "help_usage"
+        )
+
+        if custom_usage:
+
+            prefix = self.bot.command_prefix
+
+            if isinstance(
+                prefix,
+                (list, tuple)
+            ):
+                prefix = prefix[0]
+
+            usage = (
+                f"{prefix} "
+                f"{cmd.name}"
+            )
+
+            if custom_usage.strip():
+
+                usage += (
+                    " "
+                    + custom_usage.strip()
+                )
+
+            return usage
+
+        # =====================================
+        # AUTOMATIC USAGE
+        # =====================================
 
         params = inspect.signature(
             cmd.callback
@@ -45,26 +85,56 @@ class HelpView(discord.ui.View):
         for name, param in params.items():
 
             # Don't show self / ctx
-            if name in ("self", "ctx", "context"):
+            if name in (
+                "self",
+                "ctx",
+                "context"
+            ):
+                continue
+
+            # Ignore **kwargs
+            if (
+                param.kind
+                == inspect.Parameter.VAR_KEYWORD
+            ):
                 continue
 
             # Required argument
-            if param.default is inspect.Parameter.empty:
-                args.append(f"<{name}>")
+            if (
+                param.default
+                is inspect.Parameter.empty
+            ):
+
+                args.append(
+                    f"<{name}>"
+                )
 
             # Optional argument
             else:
-                args.append(f"[{name}]")
+
+                args.append(
+                    f"[{name}]"
+                )
 
         prefix = self.bot.command_prefix
 
-        if isinstance(prefix, (list, tuple)):
+        if isinstance(
+            prefix,
+            (list, tuple)
+        ):
             prefix = prefix[0]
 
-        usage = f"{prefix} {cmd.name}"
+        usage = (
+            f"{prefix} "
+            f"{cmd.name}"
+        )
 
         if args:
-            usage += " " + " ".join(args)
+
+            usage += (
+                " "
+                + " ".join(args)
+            )
 
         return usage
 
@@ -74,7 +144,10 @@ class HelpView(discord.ui.View):
 
     def get_category_emoji(self, category):
 
-        if category and not category[0].isalnum():
+        if (
+            category
+            and not category[0].isalnum()
+        ):
             return category[0]
 
         return "📚"
@@ -87,29 +160,40 @@ class HelpView(discord.ui.View):
 
         total_commands = sum(
             len(command_list)
-            for command_list in self.categories.values()
+            for command_list
+            in self.categories.values()
         )
 
         if self.categories:
 
             category_text = "\n".join(
                 f"{category}"
-                for category in sorted(self.categories)
+                for category
+                in sorted(self.categories)
             )
 
         else:
-            category_text = "No categories."
+
+            category_text = (
+                "No categories."
+            )
 
         prefix = self.bot.command_prefix
 
-        if isinstance(prefix, (list, tuple)):
+        if isinstance(
+            prefix,
+            (list, tuple)
+        ):
             prefix = prefix[0]
 
         embed = discord.Embed(
-            title=f"{self.bot.user.name} Help",
+            title=(
+                f"{self.bot.user.name} Help"
+            ),
             description=(
                 "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"Welcome to **{self.bot.user.name}**'s command center.\n\n"
+                f"Welcome to **{self.bot.user.name}**'s "
+                "command center.\n\n"
                 "Select a category below to explore "
                 "the available commands.\n\n"
                 "━━━━━━━━━━━━━━━━━━━━━━"
@@ -147,14 +231,22 @@ class HelpView(discord.ui.View):
 
     def category_embed(self, category):
 
-        emoji = self.get_category_emoji(category)
+        emoji = self.get_category_emoji(
+            category
+        )
 
         category_name = category
 
         if category.startswith(emoji):
-            category_name = category[len(emoji):].strip()
 
-        commands_list = self.categories[category]
+            category_name = (
+                category[len(emoji):]
+                .strip()
+            )
+
+        commands_list = self.categories[
+            category
+        ]
 
         command_text = []
 
@@ -169,26 +261,37 @@ class HelpView(discord.ui.View):
             )
 
         embed = discord.Embed(
-            title=f"{emoji} {category_name.upper()} COMMANDS",
-            description="━━━━━━━━━━━━━━━━━━━━━━",
+            title=(
+                f"{emoji} "
+                f"{category_name.upper()} COMMANDS"
+            ),
+            description=(
+                "━━━━━━━━━━━━━━━━━━━━━━"
+            ),
             color=discord.Color.blue()
         )
 
         embed.add_field(
             name="\u200b",
-            value="\n\n".join(command_text),
+            value="\n\n".join(
+                command_text
+            ),
             inline=False
         )
 
         embed.add_field(
             name="\u200b",
-            value="━━━━━━━━━━━━━━━━━━━━━━",
+            value=(
+                "━━━━━━━━━━━━━━━━━━━━━━"
+            ),
             inline=False
         )
 
         embed.add_field(
             name="\u200b",
-            value=f"**{len(commands_list)} commands**",
+            value=(
+                f"**{len(commands_list)} commands**"
+            ),
             inline=False
         )
 
@@ -210,7 +313,9 @@ class HelpSelect(discord.ui.Select):
                 label="Home",
                 value="__home__",
                 emoji="🏠",
-                description="Return to the help home page"
+                description=(
+                    "Return to the help home page"
+                )
             )
         ]
 
@@ -218,21 +323,28 @@ class HelpSelect(discord.ui.Select):
             help_view.categories
         ):
 
-            emoji = help_view.get_category_emoji(
-                category
+            emoji = (
+                help_view
+                .get_category_emoji(category)
             )
 
             name = category
 
             if category.startswith(emoji):
-                name = category[len(emoji):].strip()
+
+                name = (
+                    category[len(emoji):]
+                    .strip()
+                )
 
             options.append(
                 discord.SelectOption(
                     label=name[:100],
                     value=category[:100],
                     emoji=emoji,
-                    description=f"View {name} commands"[:100]
+                    description=(
+                        f"View {name} commands"
+                    )[:100]
                 )
             )
 
@@ -241,18 +353,25 @@ class HelpSelect(discord.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction):
+    async def callback(
+        self,
+        interaction
+    ):
 
         category = self.values[0]
 
         if category == "__home__":
 
-            embed = self.help_view.home_embed()
+            embed = (
+                self.help_view
+                .home_embed()
+            )
 
         else:
 
-            embed = self.help_view.category_embed(
-                category
+            embed = (
+                self.help_view
+                .category_embed(category)
             )
 
         await interaction.response.edit_message(
@@ -282,4 +401,7 @@ class Help(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(Help(bot))
+
+    await bot.add_cog(
+        Help(bot)
+            )

@@ -5,87 +5,122 @@ from utils.command import command
 
 
 # =========================================
-# CATEGORY CONVERTER
+# CATEGORY FINDER
 # =========================================
 
-class CategoryConverter(commands.Converter):
+def find_category(guild, text):
 
-    async def convert(self, ctx, argument):
+    text = text.strip()
 
-        # Try category ID
-        if argument.isdigit():
+    # Try ID
+    if text.isdigit():
 
-            category = ctx.guild.get_channel(
-                int(argument)
-            )
-
-            if isinstance(
-                category,
-                discord.CategoryChannel
-            ):
-                return category
-
-        # Try category name
-        category = discord.utils.find(
-            lambda c: (
-                isinstance(
-                    c,
-                    discord.CategoryChannel
-                )
-                and c.name.lower() == argument.lower()
-            ),
-            ctx.guild.categories
+        category = guild.get_channel(
+            int(text)
         )
 
-        if category:
+        if isinstance(
+            category,
+            discord.CategoryChannel
+        ):
             return category
 
-        raise commands.BadArgument(
-            "Category not found."
-        )
-
-
-# =========================================
-# CHANNEL CONVERTER
-# =========================================
-
-class ChannelConverter(commands.Converter):
-
-    async def convert(self, ctx, argument):
-
-        # Try channel ID
-        if argument.isdigit():
-
-            channel = ctx.guild.get_channel(
-                int(argument)
+    # Try exact name
+    category = discord.utils.find(
+        lambda c: (
+            isinstance(
+                c,
+                discord.CategoryChannel
             )
+            and c.name.lower() == text.lower()
+        ),
+        guild.categories
+    )
 
-            if channel:
-                return channel
+    if category:
+        return category
 
-        # Try channel name
-        channel = discord.utils.find(
-            lambda c: (
-                c.name.lower() == argument.lower()
-                and isinstance(
-                    c,
-                    (
-                        discord.TextChannel,
-                        discord.VoiceChannel,
-                        discord.ForumChannel,
-                        discord.StageChannel
-                    )
-                )
-            ),
-            ctx.guild.channels
+    # Try underscore version
+    category = discord.utils.find(
+        lambda c: (
+            isinstance(
+                c,
+                discord.CategoryChannel
+            )
+            and c.name.lower() == text.replace(
+                "_",
+                " "
+            ).lower()
+        ),
+        guild.categories
+    )
+
+    return category
+
+
+# =========================================
+# CHANNEL FINDER
+# =========================================
+
+def find_channel(guild, text):
+
+    text = text.strip()
+
+    # Try ID
+    if text.isdigit():
+
+        channel = guild.get_channel(
+            int(text)
         )
 
         if channel:
             return channel
 
-        raise commands.BadArgument(
-            "Channel not found."
-        )
+    # Remove #
+    if text.startswith("#"):
+        text = text[1:]
+
+    # Try exact name
+    channel = discord.utils.find(
+        lambda c: (
+            isinstance(
+                c,
+                (
+                    discord.TextChannel,
+                    discord.VoiceChannel,
+                    discord.ForumChannel,
+                    discord.StageChannel
+                )
+            )
+            and c.name.lower() == text.lower()
+        ),
+        guild.channels
+    )
+
+    if channel:
+        return channel
+
+    # Try underscore version
+    channel = discord.utils.find(
+        lambda c: (
+            isinstance(
+                c,
+                (
+                    discord.TextChannel,
+                    discord.VoiceChannel,
+                    discord.ForumChannel,
+                    discord.StageChannel
+                )
+            )
+            and c.name.lower() == text.replace(
+                "_",
+                " "
+            ).lower()
+        ),
+        guild.channels
+    )
+
+    return channel
 
 
 # =========================================
@@ -111,29 +146,108 @@ class Channels(commands.Cog):
     async def addchannel(
         self,
         ctx,
-        category: CategoryConverter,
         *,
-        name: str
+        arguments: str
     ):
 
+        arguments = arguments.strip()
+
+        if not arguments:
+            await ctx.send(
+                "❌ Usage: `Pythagoras addchannel <category> <channel>`"
+            )
+            return
+
         # -------------------------------------
-        # CHECK IF CHANNEL ALREADY EXISTS
+        # FIND CATEGORY
+        # -------------------------------------
+        #
+        # Try every possible split until a
+        # real category is found.
+        #
+        # Example:
+        #
+        # GENERAL CHANNELS general
+        #
+        # Tries:
+        #
+        # GENERAL
+        # GENERAL CHANNELS
+        #
+        # Finds GENERAL CHANNELS.
         # -------------------------------------
 
-        channel = discord.utils.find(
-            lambda c: (
-                c.name.lower() == name.lower()
-                and isinstance(
-                    c,
-                    (
-                        discord.TextChannel,
-                        discord.VoiceChannel,
-                        discord.ForumChannel,
-                        discord.StageChannel
-                    )
-                )
-            ),
-            ctx.guild.channels
+        parts = arguments.split()
+
+        category = None
+        category_end = 0
+
+        for i in range(1, len(parts) + 1):
+
+            possible_category = " ".join(
+                parts[:i]
+            )
+
+            found = find_category(
+                ctx.guild,
+                possible_category
+            )
+
+            if found:
+
+                category = found
+                category_end = i
+
+                break
+
+        if not category:
+
+            await ctx.send(
+                "❌ I couldn't find that category."
+            )
+
+            return
+
+        # -------------------------------------
+        # GET CHANNEL NAME
+        # -------------------------------------
+
+        channel_name = " ".join(
+            parts[category_end:]
+        ).strip()
+
+        if not channel_name:
+
+            await ctx.send(
+                "❌ Please provide a channel name."
+            )
+
+            return
+
+        # Remove quotes
+        if (
+            len(channel_name) >= 2
+            and channel_name.startswith('"')
+            and channel_name.endswith('"')
+        ):
+
+            channel_name = channel_name[1:-1]
+
+        elif (
+            len(channel_name) >= 2
+            and channel_name.startswith("'")
+            and channel_name.endswith("'")
+        ):
+
+            channel_name = channel_name[1:-1]
+
+        # -------------------------------------
+        # FIND EXISTING CHANNEL
+        # -------------------------------------
+
+        channel = find_channel(
+            ctx.guild,
+            channel_name
         )
 
         # -------------------------------------
@@ -142,7 +256,7 @@ class Channels(commands.Cog):
 
         if channel:
 
-            # Already in this category
+            # Already there
             if channel.category_id == category.id:
 
                 await ctx.send(
@@ -181,7 +295,7 @@ class Channels(commands.Cog):
         # -------------------------------------
 
         channel = await ctx.guild.create_text_channel(
-            name=name,
+            name=channel_name,
             category=category,
             reason=f"Created by {ctx.author}"
         )
@@ -205,17 +319,31 @@ class Channels(commands.Cog):
     async def delchannel(
         self,
         ctx,
-        channel: ChannelConverter
+        *,
+        channel_name: str
     ):
 
-        channel_name = channel.name
+        channel = find_channel(
+            ctx.guild,
+            channel_name
+        )
+
+        if not channel:
+
+            await ctx.send(
+                "❌ I couldn't find that channel."
+            )
+
+            return
+
+        old_name = channel.name
 
         await channel.delete(
             reason=f"Deleted by {ctx.author}"
         )
 
         await ctx.send(
-            f"🗑️ Deleted **#{channel_name}**."
+            f"🗑️ Deleted **#{old_name}**."
         )
 
     # =========================================
@@ -232,15 +360,43 @@ class Channels(commands.Cog):
     async def editchannel(
         self,
         ctx,
-        channel: ChannelConverter,
         *,
-        name: str
+        arguments: str
     ):
+
+        parts = arguments.split()
+
+        if len(parts) < 2:
+
+            await ctx.send(
+                "❌ Usage: `Pythagoras editchannel <channel> <new name>`"
+            )
+
+            return
+
+        # First word = channel
+        channel_name = parts[0]
+
+        # Everything else = new name
+        new_name = " ".join(parts[1:])
+
+        channel = find_channel(
+            ctx.guild,
+            channel_name
+        )
+
+        if not channel:
+
+            await ctx.send(
+                "❌ I couldn't find that channel."
+            )
+
+            return
 
         old_name = channel.name
 
         await channel.edit(
-            name=name,
+            name=new_name,
             reason=f"Edited by {ctx.author}"
         )
 
@@ -291,8 +447,22 @@ class Channels(commands.Cog):
     async def delcategory(
         self,
         ctx,
-        category: CategoryConverter
+        *,
+        name: str
     ):
+
+        category = find_category(
+            ctx.guild,
+            name
+        )
+
+        if not category:
+
+            await ctx.send(
+                "❌ I couldn't find that category."
+            )
+
+            return
 
         category_name = category.name
 
@@ -382,6 +552,7 @@ class Channels(commands.Cog):
 # =========================================
 
 async def setup(bot):
+
     await bot.add_cog(
         Channels(bot)
-        )
+    )

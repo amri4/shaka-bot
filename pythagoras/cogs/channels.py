@@ -5,6 +5,18 @@ from utils.command import command
 
 
 # =========================================
+# SUPPORTED CHANNEL TYPES
+# =========================================
+
+CHANNEL_TYPES = (
+    discord.TextChannel,
+    discord.VoiceChannel,
+    discord.ForumChannel,
+    discord.StageChannel,
+)
+
+
+# =========================================
 # FIND CATEGORY
 # =========================================
 
@@ -12,19 +24,25 @@ def find_category(guild, text):
 
     text = text.strip()
 
-    # Category ID
-    if text.isdigit():
-        category = guild.get_channel(int(text))
-
-        if isinstance(category, discord.CategoryChannel):
-            return category
-
     # Remove quotes
     if len(text) >= 2:
         if text[0] == text[-1] and text[0] in ("\"", "'"):
             text = text[1:-1]
 
-    # Exact name
+    # Category ID
+    if text.isdigit():
+
+        category = guild.get_channel(
+            int(text)
+        )
+
+        if isinstance(
+            category,
+            discord.CategoryChannel
+        ):
+            return category
+
+    # Exact category name
     for category in guild.categories:
 
         if category.name.lower() == text.lower():
@@ -49,11 +67,7 @@ def find_channel(guild, text):
 
     text = text.strip()
 
-    # =====================================
-    # CHANNEL MENTION
-    # =====================================
-
-    # Discord channel mention:
+    # Discord channel mention
     # <#123456789>
     if text.startswith("<#") and text.endswith(">"):
 
@@ -68,17 +82,11 @@ def find_channel(guild, text):
             if channel:
                 return channel
 
-    # =====================================
     # #channel
-    # =====================================
-
     if text.startswith("#"):
         text = text[1:]
 
-    # =====================================
-    # CHANNEL ID
-    # =====================================
-
+    # Channel ID
     if text.isdigit():
 
         channel = guild.get_channel(
@@ -88,10 +96,7 @@ def find_channel(guild, text):
         if channel:
             return channel
 
-    # =====================================
-    # REMOVE QUOTES
-    # =====================================
-
+    # Remove quotes
     if len(text) >= 2:
 
         if (
@@ -100,42 +105,26 @@ def find_channel(guild, text):
         ):
             text = text[1:-1]
 
-    # =====================================
-    # EXACT NAME
-    # =====================================
-
+    # Exact name
     for channel in guild.channels:
 
         if not isinstance(
             channel,
-            (
-                discord.TextChannel,
-                discord.VoiceChannel,
-                discord.ForumChannel,
-                discord.StageChannel
-            )
+            CHANNEL_TYPES
         ):
             continue
 
         if channel.name.lower() == text.lower():
             return channel
 
-    # =====================================
-    # UNDERSCORE VERSION
-    # =====================================
-
+    # Underscore version
     converted = text.replace("_", " ")
 
     for channel in guild.channels:
 
         if not isinstance(
             channel,
-            (
-                discord.TextChannel,
-                discord.VoiceChannel,
-                discord.ForumChannel,
-                discord.StageChannel
-            )
+            CHANNEL_TYPES
         ):
             continue
 
@@ -146,12 +135,61 @@ def find_channel(guild, text):
 
 
 # =========================================
+# FIND CATEGORY USING MULTIPLE WORDS
+# =========================================
+
+def find_category_from_parts(guild, parts):
+
+    for i in range(1, len(parts) + 1):
+
+        possible = " ".join(
+            parts[:i]
+        )
+
+        category = find_category(
+            guild,
+            possible
+        )
+
+        if category:
+
+            return category, i
+
+    return None, None
+
+
+# =========================================
+# FIND CHANNEL USING MULTIPLE WORDS
+# =========================================
+
+def find_channel_from_parts(guild, parts):
+
+    for i in range(1, len(parts) + 1):
+
+        possible = " ".join(
+            parts[:i]
+        )
+
+        channel = find_channel(
+            guild,
+            possible
+        )
+
+        if channel:
+
+            return channel, i
+
+    return None, None
+
+
+# =========================================
 # CHANNELS COG
 # =========================================
 
 class Channels(commands.Cog):
 
     def __init__(self, bot):
+
         self.bot = bot
 
     # =====================================
@@ -185,30 +223,11 @@ class Channels(commands.Cog):
 
         parts = arguments.split()
 
-        category = None
-        category_end = None
-
-        # =================================
-        # FIND CATEGORY
-        # =================================
-
-        for i in range(1, len(parts) + 1):
-
-            possible_category = " ".join(
-                parts[:i]
-            )
-
-            found = find_category(
-                ctx.guild,
-                possible_category
-            )
-
-            if found:
-
-                category = found
-                category_end = i
-
-                break
+        # Find category first
+        category, category_end = find_category_from_parts(
+            ctx.guild,
+            parts
+        )
 
         if not category:
 
@@ -218,10 +237,7 @@ class Channels(commands.Cog):
 
             return
 
-        # =================================
-        # CHANNEL NAME
-        # =================================
-
+        # Remaining text is channel
         channel_name = " ".join(
             parts[category_end:]
         ).strip()
@@ -234,11 +250,7 @@ class Channels(commands.Cog):
 
             return
 
-        # =================================
-        # IMPORTANT:
-        # CHECK EXISTING CHANNEL FIRST
-        # =================================
-
+        # Find existing channel
         channel = find_channel(
             ctx.guild,
             channel_name
@@ -283,12 +295,7 @@ class Channels(commands.Cog):
 
             return
 
-        # =================================
-        # CHANNEL DOESN'T EXIST
-        # =================================
-
-        # If the user explicitly used #channel
-        # or a channel ID/mention, DON'T create it.
+        # Explicit channel reference
         explicit_reference = (
             channel_name.startswith("#")
             or (
@@ -307,7 +314,7 @@ class Channels(commands.Cog):
             return
 
         # =================================
-        # CREATE NEW CHANNEL
+        # CREATE CHANNEL
         # =================================
 
         channel = await ctx.guild.create_text_channel(
@@ -404,7 +411,9 @@ class Channels(commands.Cog):
 
             return
 
-        new_name = " ".join(parts[1:])
+        new_name = " ".join(
+            parts[1:]
+        )
 
         old_name = channel.name
 
@@ -419,7 +428,7 @@ class Channels(commands.Cog):
         )
 
     # =====================================
-    # ADD CATEGORY
+    # CREATE CATEGORY
     # =====================================
 
     @command(
@@ -508,14 +517,22 @@ class Channels(commands.Cog):
 
             return
 
-        text = "\n".join(
-            f"• {category.name}"
-            for category in categories
-        )
+        lines = []
+
+        for category in categories:
+
+            channel_count = len(
+                category.channels
+            )
+
+            lines.append(
+                f"📁 **{category.name}** "
+                f"— {channel_count} channels"
+            )
 
         embed = discord.Embed(
             title="📁 Server Categories",
-            description=text,
+            description="\n".join(lines),
             color=discord.Color.blue()
         )
 
@@ -528,8 +545,313 @@ class Channels(commands.Cog):
         )
 
     # =====================================
-    # ERROR HANDLING
+    # MOVE CHANNEL
     # =====================================
+
+    @command(
+        "🔵 Channels",
+        "Move a channel above or below another channel"
+    )
+    @commands.has_guild_permissions(
+        manage_channels=True
+    )
+    async def movechannel(
+        self,
+        ctx,
+        *,
+        arguments: str
+    ):
+
+        parts = arguments.split()
+
+        if len(parts) < 3:
+
+            await ctx.send(
+                "❌ Usage: "
+                "`Pythagoras movechannel <channel> "
+                "<above/below> <target>`"
+            )
+
+            return
+
+        # ---------------------------------
+        # FIND SOURCE CHANNEL
+        # ---------------------------------
+
+        source = None
+        source_end = None
+
+        # Try each possible amount of words
+        # until we find a channel.
+        for i in range(1, len(parts)):
+
+            possible = " ".join(
+                parts[:i]
+            )
+
+            found = find_channel(
+                ctx.guild,
+                possible
+            )
+
+            if found:
+
+                source = found
+                source_end = i
+                break
+
+        if not source:
+
+            await ctx.send(
+                "❌ I couldn't find the channel "
+                "you want to move."
+            )
+
+            return
+
+        # ---------------------------------
+        # DIRECTION
+        # ---------------------------------
+
+        if source_end >= len(parts):
+
+            await ctx.send(
+                "❌ Please specify `above` or `below`."
+            )
+
+            return
+
+        direction = parts[source_end].lower()
+
+        if direction not in (
+            "above",
+            "below"
+        ):
+
+            await ctx.send(
+                "❌ Direction must be "
+                "`above` or `below`."
+            )
+
+            return
+
+        # ---------------------------------
+        # FIND TARGET
+        # ---------------------------------
+
+        target_text = " ".join(
+            parts[source_end + 1:]
+        )
+
+        target = find_channel(
+            ctx.guild,
+            target_text
+        )
+
+        if not target:
+
+            await ctx.send(
+                "❌ I couldn't find the target channel."
+            )
+
+            return
+
+        if source.id == target.id:
+
+            await ctx.send(
+                "❌ You can't move a channel "
+                "relative to itself."
+            )
+
+            return
+
+        # ---------------------------------
+        # SAME CATEGORY
+        # ---------------------------------
+
+        if source.category_id != target.category_id:
+
+            await ctx.send(
+                "❌ Both channels must be "
+                "in the same category."
+            )
+
+            return
+
+        # ---------------------------------
+        # MOVE
+        # ---------------------------------
+
+        target_position = target.position
+
+        if direction == "above":
+
+            new_position = target_position
+
+        else:
+
+            new_position = target_position + 1
+
+        await source.edit(
+            position=new_position,
+            reason=f"Moved by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"📁 Moved {source.mention} "
+            f"**{direction}** {target.mention}."
+        )
+
+    # =====================================
+    # MOVE CATEGORY
+    # =====================================
+
+    @command(
+        "🔵 Channels",
+        "Move a category above or below another category"
+    )
+    @commands.has_guild_permissions(
+        manage_channels=True
+    )
+    async def movecategory(
+        self,
+        ctx,
+        *,
+        arguments: str
+    ):
+
+        parts = arguments.split()
+
+        if len(parts) < 3:
+
+            await ctx.send(
+                "❌ Usage: "
+                "`Pythagoras movecategory <category> "
+                "<above/below> <target>`"
+            )
+
+            return
+
+        # ---------------------------------
+        # FIND SOURCE CATEGORY
+        # ---------------------------------
+
+        source = None
+        source_end = None
+
+        for i in range(1, len(parts)):
+
+            possible = " ".join(
+                parts[:i]
+            )
+
+            found = find_category(
+                ctx.guild,
+                possible
+            )
+
+            if found:
+
+                source = found
+                source_end = i
+                break
+
+        if not source:
+
+            await ctx.send(
+                "❌ I couldn't find the category "
+                "you want to move."
+            )
+
+            return
+
+        # ---------------------------------
+        # DIRECTION
+        # ---------------------------------
+
+        if source_end >= len(parts):
+
+            await ctx.send(
+                "❌ Please specify `above` or `below`."
+            )
+
+            return
+
+        direction = parts[source_end].lower()
+
+        if direction not in (
+            "above",
+            "below"
+        ):
+
+            await ctx.send(
+                "❌ Direction must be "
+                "`above` or `below`."
+            )
+
+            return
+
+        # ---------------------------------
+        # TARGET CATEGORY
+        # ---------------------------------
+
+        target_text = " ".join(
+            parts[source_end + 1:]
+        )
+
+        target = find_category(
+            ctx.guild,
+            target_text
+        )
+
+        if not target:
+
+            await ctx.send(
+                "❌ I couldn't find the "
+                "target category."
+            )
+
+            return
+
+        if source.id == target.id:
+
+            await ctx.send(
+                "❌ You can't move a category "
+                "relative to itself."
+            )
+
+            return
+
+        # ---------------------------------
+        # MOVE
+        # ---------------------------------
+
+        target_position = target.position
+
+        if direction == "above":
+
+            new_position = target_position
+
+        else:
+
+            new_position = target_position + 1
+
+        await source.edit(
+            position=new_position,
+            reason=f"Moved by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"📁 Moved category "
+            f"**{source.name}** "
+            f"**{direction}** "
+            f"**{target.name}**."
+        )
+
+
+# =========================================
+# ERROR HANDLING
+# =========================================
 
     @commands.Cog.listener()
     async def on_command_error(
@@ -557,4 +879,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Channels(bot)
-)
+        )

@@ -11,14 +11,22 @@ class HelpView(discord.ui.View):
         self.bot = bot
         self.categories = {}
 
+        # =========================================
+        # AUTOMATICALLY FIND COMMANDS
+        # =========================================
+
         for cmd in bot.commands:
+
             if cmd.hidden:
                 continue
 
             category = cmd.extras.get("help_category")
 
             if category:
-                self.categories.setdefault(category, []).append(cmd)
+                self.categories.setdefault(
+                    category,
+                    []
+                ).append(cmd)
 
         self.add_item(HelpSelect(self))
 
@@ -28,17 +36,23 @@ class HelpView(discord.ui.View):
 
     def get_usage(self, cmd):
 
-        params = inspect.signature(cmd.callback).parameters
+        params = inspect.signature(
+            cmd.callback
+        ).parameters
 
         args = []
 
         for name, param in params.items():
 
+            # Don't show self / ctx
             if name in ("self", "ctx", "context"):
                 continue
 
+            # Required argument
             if param.default is inspect.Parameter.empty:
                 args.append(f"<{name}>")
+
+            # Optional argument
             else:
                 args.append(f"[{name}]")
 
@@ -60,12 +74,8 @@ class HelpView(discord.ui.View):
 
     def get_category_emoji(self, category):
 
-        if category and len(category) >= 2:
-            first = category[0]
-
-            # Category starts with an emoji
-            if not first.isalnum():
-                return first
+        if category and not category[0].isalnum():
+            return category[0]
 
         return "📚"
 
@@ -81,10 +91,12 @@ class HelpView(discord.ui.View):
         )
 
         if self.categories:
+
             category_text = "\n".join(
                 f"{category}"
                 for category in sorted(self.categories)
             )
+
         else:
             category_text = "No categories."
 
@@ -98,7 +110,8 @@ class HelpView(discord.ui.View):
             description=(
                 "━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 f"Welcome to **{self.bot.user.name}**'s command center.\n\n"
-                "Select a category below to explore the available commands.\n\n"
+                "Select a category below to explore "
+                "the available commands.\n\n"
                 "━━━━━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blue()
@@ -136,11 +149,24 @@ class HelpView(discord.ui.View):
 
         emoji = self.get_category_emoji(category)
 
-        # Remove emoji from displayed category name
         category_name = category
 
         if category.startswith(emoji):
             category_name = category[len(emoji):].strip()
+
+        commands_list = self.categories[category]
+
+        command_text = []
+
+        for cmd in commands_list:
+
+            usage = self.get_usage(cmd)
+
+            command_text.append(
+                f"**{cmd.name}**\n"
+                f"`{usage}`\n"
+                f"{cmd.description or 'No description.'}"
+            )
 
         embed = discord.Embed(
             title=f"{emoji} {category_name.upper()} COMMANDS",
@@ -148,30 +174,17 @@ class HelpView(discord.ui.View):
             color=discord.Color.blue()
         )
 
-        commands_list = self.categories[category]
+        embed.add_field(
+            name="\u200b",
+            value="\n\n".join(command_text),
+            inline=False
+        )
 
-        for index, cmd in enumerate(commands_list):
-
-            usage = self.get_usage(cmd)
-
-            text = (
-                f"**{cmd.name}**\n\n"
-                f"`{usage}`\n\n"
-                f"{cmd.description or 'No description.'}"
-            )
-
-            embed.add_field(
-                name="\u200b",
-                value=text,
-                inline=False
-            )
-
-            if index != len(commands_list) - 1:
-                embed.add_field(
-                    name="\u200b",
-                    value="━━━━━━━━━━━━━━━━━━━━━━",
-                    inline=False
-                )
+        embed.add_field(
+            name="\u200b",
+            value="━━━━━━━━━━━━━━━━━━━━━━",
+            inline=False
+        )
 
         embed.add_field(
             name="\u200b",
@@ -201,9 +214,13 @@ class HelpSelect(discord.ui.Select):
             )
         ]
 
-        for category in sorted(help_view.categories):
+        for category in sorted(
+            help_view.categories
+        ):
 
-            emoji = help_view.get_category_emoji(category)
+            emoji = help_view.get_category_emoji(
+                category
+            )
 
             name = category
 
@@ -229,9 +246,14 @@ class HelpSelect(discord.ui.Select):
         category = self.values[0]
 
         if category == "__home__":
+
             embed = self.help_view.home_embed()
+
         else:
-            embed = self.help_view.category_embed(category)
+
+            embed = self.help_view.category_embed(
+                category
+            )
 
         await interaction.response.edit_message(
             embed=embed,

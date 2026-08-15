@@ -5,68 +5,80 @@ from utils.command import command
 
 
 # =========================================
-# CATEGORY FINDER
+# FIND CATEGORY
 # =========================================
 
 def find_category(guild, text):
 
     text = text.strip()
 
-    # Try ID
+    # Category ID
     if text.isdigit():
+        category = guild.get_channel(int(text))
 
-        category = guild.get_channel(
-            int(text)
-        )
-
-        if isinstance(
-            category,
-            discord.CategoryChannel
-        ):
+        if isinstance(category, discord.CategoryChannel):
             return category
 
-    # Try exact name
-    category = discord.utils.find(
-        lambda c: (
-            isinstance(
-                c,
-                discord.CategoryChannel
-            )
-            and c.name.lower() == text.lower()
-        ),
-        guild.categories
-    )
+    # Remove quotes
+    if len(text) >= 2:
+        if text[0] == text[-1] and text[0] in ("\"", "'"):
+            text = text[1:-1]
 
-    if category:
-        return category
+    # Exact name
+    for category in guild.categories:
 
-    # Try underscore version
-    category = discord.utils.find(
-        lambda c: (
-            isinstance(
-                c,
-                discord.CategoryChannel
-            )
-            and c.name.lower() == text.replace(
-                "_",
-                " "
-            ).lower()
-        ),
-        guild.categories
-    )
+        if category.name.lower() == text.lower():
+            return category
 
-    return category
+    # Underscore version
+    converted = text.replace("_", " ")
+
+    for category in guild.categories:
+
+        if category.name.lower() == converted.lower():
+            return category
+
+    return None
 
 
 # =========================================
-# CHANNEL FINDER
+# FIND CHANNEL
 # =========================================
 
 def find_channel(guild, text):
 
     text = text.strip()
 
-    # Try ID
+    # =====================================
+    # CHANNEL MENTION
+    # =====================================
+
+    # Discord channel mention:
+    # <#123456789>
+    if text.startswith("<#") and text.endswith(">"):
+
+        channel_id = text[2:-1]
+
+        if channel_id.isdigit():
+
+            channel = guild.get_channel(
+                int(channel_id)
+            )
+
+            if channel:
+                return channel
+
+    # =====================================
+    # #channel
+    # =====================================
+
+    if text.startswith("#"):
+        text = text[1:]
+
+    # =====================================
+    # CHANNEL ID
+    # =====================================
+
     if text.isdigit():
 
         channel = guild.get_channel(
@@ -76,51 +88,61 @@ def find_channel(guild, text):
         if channel:
             return channel
 
-    # Remove #
-    if text.startswith("#"):
-        text = text[1:]
+    # =====================================
+    # REMOVE QUOTES
+    # =====================================
 
-    # Try exact name
-    channel = discord.utils.find(
-        lambda c: (
-            isinstance(
-                c,
-                (
-                    discord.TextChannel,
-                    discord.VoiceChannel,
-                    discord.ForumChannel,
-                    discord.StageChannel
-                )
+    if len(text) >= 2:
+
+        if (
+            text[0] == text[-1]
+            and text[0] in ("\"", "'")
+        ):
+            text = text[1:-1]
+
+    # =====================================
+    # EXACT NAME
+    # =====================================
+
+    for channel in guild.channels:
+
+        if not isinstance(
+            channel,
+            (
+                discord.TextChannel,
+                discord.VoiceChannel,
+                discord.ForumChannel,
+                discord.StageChannel
             )
-            and c.name.lower() == text.lower()
-        ),
-        guild.channels
-    )
+        ):
+            continue
 
-    if channel:
-        return channel
+        if channel.name.lower() == text.lower():
+            return channel
 
-    # Try underscore version
-    channel = discord.utils.find(
-        lambda c: (
-            isinstance(
-                c,
-                (
-                    discord.TextChannel,
-                    discord.VoiceChannel,
-                    discord.ForumChannel,
-                    discord.StageChannel
-                )
+    # =====================================
+    # UNDERSCORE VERSION
+    # =====================================
+
+    converted = text.replace("_", " ")
+
+    for channel in guild.channels:
+
+        if not isinstance(
+            channel,
+            (
+                discord.TextChannel,
+                discord.VoiceChannel,
+                discord.ForumChannel,
+                discord.StageChannel
             )
-            and c.name.lower() == text.replace(
-                "_",
-                " "
-            ).lower()
-        ),
-        guild.channels
-    )
+        ):
+            continue
 
-    return channel
+        if channel.name.lower() == converted.lower():
+            return channel
+
+    return None
 
 
 # =========================================
@@ -132,9 +154,9 @@ class Channels(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # =========================================
+    # =====================================
     # ADD / MOVE CHANNEL
-    # =========================================
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -153,34 +175,22 @@ class Channels(commands.Cog):
         arguments = arguments.strip()
 
         if not arguments:
-            await ctx.send(
-                "❌ Usage: `Pythagoras addchannel <category> <channel>`"
-            )
-            return
 
-        # -------------------------------------
-        # FIND CATEGORY
-        # -------------------------------------
-        #
-        # Try every possible split until a
-        # real category is found.
-        #
-        # Example:
-        #
-        # GENERAL CHANNELS general
-        #
-        # Tries:
-        #
-        # GENERAL
-        # GENERAL CHANNELS
-        #
-        # Finds GENERAL CHANNELS.
-        # -------------------------------------
+            await ctx.send(
+                "❌ Usage: "
+                "`Pythagoras addchannel <category> <channel>`"
+            )
+
+            return
 
         parts = arguments.split()
 
         category = None
-        category_end = 0
+        category_end = None
+
+        # =================================
+        # FIND CATEGORY
+        # =================================
 
         for i in range(1, len(parts) + 1):
 
@@ -208,9 +218,9 @@ class Channels(commands.Cog):
 
             return
 
-        # -------------------------------------
-        # GET CHANNEL NAME
-        # -------------------------------------
+        # =================================
+        # CHANNEL NAME
+        # =================================
 
         channel_name = " ".join(
             parts[category_end:]
@@ -219,44 +229,27 @@ class Channels(commands.Cog):
         if not channel_name:
 
             await ctx.send(
-                "❌ Please provide a channel name."
+                "❌ Please provide a channel."
             )
 
             return
 
-        # Remove quotes
-        if (
-            len(channel_name) >= 2
-            and channel_name.startswith('"')
-            and channel_name.endswith('"')
-        ):
-
-            channel_name = channel_name[1:-1]
-
-        elif (
-            len(channel_name) >= 2
-            and channel_name.startswith("'")
-            and channel_name.endswith("'")
-        ):
-
-            channel_name = channel_name[1:-1]
-
-        # -------------------------------------
-        # FIND EXISTING CHANNEL
-        # -------------------------------------
+        # =================================
+        # IMPORTANT:
+        # CHECK EXISTING CHANNEL FIRST
+        # =================================
 
         channel = find_channel(
             ctx.guild,
             channel_name
         )
 
-        # -------------------------------------
+        # =================================
         # EXISTING CHANNEL
-        # -------------------------------------
+        # =================================
 
         if channel:
 
-            # Already there
             if channel.category_id == category.id:
 
                 await ctx.send(
@@ -290,9 +283,32 @@ class Channels(commands.Cog):
 
             return
 
-        # -------------------------------------
+        # =================================
+        # CHANNEL DOESN'T EXIST
+        # =================================
+
+        # If the user explicitly used #channel
+        # or a channel ID/mention, DON'T create it.
+        explicit_reference = (
+            channel_name.startswith("#")
+            or (
+                channel_name.startswith("<#")
+                and channel_name.endswith(">")
+            )
+            or channel_name.isdigit()
+        )
+
+        if explicit_reference:
+
+            await ctx.send(
+                "❌ I couldn't find that channel."
+            )
+
+            return
+
+        # =================================
         # CREATE NEW CHANNEL
-        # -------------------------------------
+        # =================================
 
         channel = await ctx.guild.create_text_channel(
             name=channel_name,
@@ -305,9 +321,9 @@ class Channels(commands.Cog):
             f"inside **{category.name}**."
         )
 
-    # =========================================
+    # =====================================
     # DELETE CHANNEL
-    # =========================================
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -346,9 +362,9 @@ class Channels(commands.Cog):
             f"🗑️ Deleted **#{old_name}**."
         )
 
-    # =========================================
+    # =====================================
     # EDIT CHANNEL
-    # =========================================
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -369,20 +385,15 @@ class Channels(commands.Cog):
         if len(parts) < 2:
 
             await ctx.send(
-                "❌ Usage: `Pythagoras editchannel <channel> <new name>`"
+                "❌ Usage: "
+                "`Pythagoras editchannel <channel> <new name>`"
             )
 
             return
 
-        # First word = channel
-        channel_name = parts[0]
-
-        # Everything else = new name
-        new_name = " ".join(parts[1:])
-
         channel = find_channel(
             ctx.guild,
-            channel_name
+            parts[0]
         )
 
         if not channel:
@@ -392,6 +403,8 @@ class Channels(commands.Cog):
             )
 
             return
+
+        new_name = " ".join(parts[1:])
 
         old_name = channel.name
 
@@ -405,9 +418,9 @@ class Channels(commands.Cog):
             f"→ **#{channel.name}**."
         )
 
-    # =========================================
-    # CREATE CATEGORY
-    # =========================================
+    # =====================================
+    # ADD CATEGORY
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -433,9 +446,9 @@ class Channels(commands.Cog):
             f"**{category.name}**."
         )
 
-    # =========================================
+    # =====================================
     # DELETE CATEGORY
-    # =========================================
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -475,9 +488,9 @@ class Channels(commands.Cog):
             f"**{category_name}**."
         )
 
-    # =========================================
+    # =====================================
     # LIST CATEGORIES
-    # =========================================
+    # =====================================
 
     @command(
         "🔵 Channels",
@@ -514,10 +527,9 @@ class Channels(commands.Cog):
             embed=embed
         )
 
-
-# =========================================
-# ERROR HANDLING
-# =========================================
+    # =====================================
+    # ERROR HANDLING
+    # =====================================
 
     @commands.Cog.listener()
     async def on_command_error(
@@ -536,16 +548,6 @@ class Channels(commands.Cog):
                 "to use this command."
             )
 
-        elif isinstance(
-            error,
-            commands.BadArgument
-        ):
-
-            await ctx.send(
-                "❌ I couldn't find that "
-                "category or channel."
-            )
-
 
 # =========================================
 # SETUP
@@ -555,4 +557,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Channels(bot)
-    )
+)

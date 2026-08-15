@@ -198,7 +198,7 @@ class Channels(commands.Cog):
 
     @command(
         "🔵 Channels",
-        "Create a channel or move an existing channel into a category"
+        "Create a channel or move an existing channel into a category", usage="<category> <channel>"
     )
     @commands.has_guild_permissions(
         manage_channels=True
@@ -550,7 +550,7 @@ class Channels(commands.Cog):
 
     @command(
         "🔵 Channels",
-        "Move a channel above or below another channel"
+        "Move a channel above or below another channel", usage="<channel> <above/below> <target>"
     )
     @commands.has_guild_permissions(
         manage_channels=True
@@ -708,7 +708,7 @@ class Channels(commands.Cog):
 
     @command(
         "🔵 Channels",
-        "Move a category above or below another category"
+        "Move a category above or below another category", usage="<category> <above/below> <target>"
     )
     @commands.has_guild_permissions(
         manage_channels=True

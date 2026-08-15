@@ -37,13 +37,65 @@ class Welcome(commands.Cog):
             return
 
         welcome_channel_id = data[1]
+        welcome_role_id = data[3]
+        member_role_id = data[4]
 
-        if not welcome_channel_id:
-            return
+        # -------------------------------------
+        # GET WELCOME CHANNEL
+        # -------------------------------------
 
-        channel = member.guild.get_channel(
-            welcome_channel_id
-        )
+        channel = None
+
+        if welcome_channel_id:
+            channel = member.guild.get_channel(
+                welcome_channel_id
+            )
+
+        # -------------------------------------
+        # ADD WELCOME ROLE
+        # -------------------------------------
+
+        if welcome_role_id:
+
+            role = member.guild.get_role(
+                welcome_role_id
+            )
+
+            if role:
+
+                try:
+                    await member.add_roles(
+                        role,
+                        reason="Automatic welcome role"
+                    )
+
+                except discord.Forbidden:
+                    pass
+
+        # -------------------------------------
+        # ADD MEMBER ROLE
+        # -------------------------------------
+
+        if member_role_id:
+
+            role = member.guild.get_role(
+                member_role_id
+            )
+
+            if role:
+
+                try:
+                    await member.add_roles(
+                        role,
+                        reason="Automatic member role"
+                    )
+
+                except discord.Forbidden:
+                    pass
+
+        # -------------------------------------
+        # SEND WELCOME MESSAGE
+        # -------------------------------------
 
         if not channel:
             return
@@ -79,7 +131,9 @@ class Welcome(commands.Cog):
             text="Welcome aboard, pirate!"
         )
 
-        await channel.send(embed=embed)
+        await channel.send(
+            embed=embed
+        )
 
     # =========================================
     # MEMBER LEAVE
@@ -129,7 +183,9 @@ class Welcome(commands.Cog):
             text="Fair winds, pirate."
         )
 
-        await channel.send(embed=embed)
+        await channel.send(
+            embed=embed
+        )
 
 
 # =========================================

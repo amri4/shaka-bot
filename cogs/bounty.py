@@ -100,7 +100,7 @@ class Bounty(commands.Cog):
     # VIEW BOUNTY  
     # =====================================  
   
-    @command("💰Bounty", "Check your or other members bounty")  
+    @command("💰 BOUNTY", "Check your or other members bounty")  
     async def bounty(self, ctx, member: discord.Member = None):  
   
         member = member or ctx.author  
@@ -140,7 +140,7 @@ class Bounty(commands.Cog):
     # LEADERBOARD  
     # =====================================  
   
-    @command("💰Bounty", "Server's bounty leaderboard")  
+    @command("💰 BOUNTY", "Server's bounty leaderboard")  
     async def bountylb(self, ctx):  
   
         data = db.fetchall("bounty")  

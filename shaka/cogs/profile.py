@@ -1,5 +1,7 @@
 import discord
+
 from datetime import datetime
+
 from discord.ext import commands
 
 from utils.command import command
@@ -16,7 +18,7 @@ db = mycord.PunksDB()
 
 
 # =========================================
-# PROFILES TABLE
+# PROFILES
 # =========================================
 
 db.create_table(
@@ -36,7 +38,7 @@ db.create_table(
 
 
 # =========================================
-# PROFILE FIELDS TABLE
+# CUSTOM PROFILE FIELDS
 # =========================================
 
 db.create_table(
@@ -46,13 +48,14 @@ db.create_table(
     guild_id INTEGER,
     user_id INTEGER,
     name TEXT,
-    value TEXT
+    value TEXT,
+    UNIQUE(guild_id, user_id, name)
     """
 )
 
 
 # =========================================
-# GET PROFILE
+# GET / CREATE PROFILE
 # =========================================
 
 def get_profile(
@@ -70,30 +73,17 @@ def get_profile(
     )
 
     if profile:
-
         return profile
 
     db.insert(
         "profiles",
         (
             "guild_id",
-            "user_id",
-            "birthday_month",
-            "birthday_day",
-            "birthday_year",
-            "bio",
-            "banner",
-            "profile_color"
+            "user_id"
         ),
         (
             guild_id,
-            user_id,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None
+            user_id
         )
     )
 
@@ -108,56 +98,58 @@ def get_profile(
 
 
 # =========================================
-# GET PROFILE VALUE
+# PROFILE VALUE
 # =========================================
 
 def profile_value(
     profile,
-    key
+    key,
+    default=None
 ):
 
     if not profile:
-        return None
+        return default
 
-    if isinstance(
-        profile,
-        dict
-    ):
+    if isinstance(profile, dict):
 
-        return profile.get(key)
+        return profile.get(
+            key,
+            default
+        )
 
-    return None
+    return default
 
 
 # =========================================
-# GET EMBED COLOR
+# PROFILE COLOR
 # =========================================
 
-def get_embed_color(
+def get_profile_color(
     profile,
     member
 ):
 
-    profile_color = profile_value(
+    color = profile_value(
         profile,
         "profile_color"
     )
 
-    if profile_color is not None:
+    if color is not None:
 
         try:
 
             return discord.Color(
-                int(profile_color)
+                int(color)
             )
 
         except (
-            ValueError,
-            TypeError
+            TypeError,
+            ValueError
         ):
 
             pass
 
+    # Use Discord role color if available
     if member.color != discord.Color.default():
 
         return member.color
@@ -166,7 +158,7 @@ def get_embed_color(
 
 
 # =========================================
-# GET BIRTHDAY
+# FORMAT BIRTHDAY
 # =========================================
 
 def get_birthday(
@@ -184,7 +176,6 @@ def get_birthday(
     )
 
     if not month or not day:
-
         return None
 
     try:
@@ -199,9 +190,52 @@ def get_birthday(
             "%B %d"
         )
 
-    except ValueError:
+    except (
+        ValueError,
+        TypeError
+    ):
 
         return None
+
+
+# =========================================
+# GET CUSTOM FIELDS
+# =========================================
+
+def get_fields(
+    guild_id,
+    user_id
+):
+
+    rows = db.fetchall(
+        "profile_fields"
+    )
+
+    fields = []
+
+    for row in rows:
+
+        if not isinstance(
+            row,
+            dict
+        ):
+            continue
+
+        if row.get(
+            "guild_id"
+        ) != guild_id:
+
+            continue
+
+        if row.get(
+            "user_id"
+        ) != user_id:
+
+            continue
+
+        fields.append(row)
+
+    return fields
 
 
 # =========================================
@@ -226,6 +260,7 @@ class Profile(commands.Cog):
         "View your profile or another user's profile",
         usage="[user]"
     )
+    @commands.guild_only()
     async def profile(
         self,
         ctx,
@@ -243,7 +278,7 @@ class Profile(commands.Cog):
             title=(
                 f"{member.display_name}'s Profile"
             ),
-            color=get_embed_color(
+            color=get_profile_color(
                 profile,
                 member
             )
@@ -277,7 +312,7 @@ class Profile(commands.Cog):
         # ---------------------------------
 
         embed.add_field(
-            name="Display Name",
+            name="👤 Display Name",
             value=member.display_name,
             inline=True
         )
@@ -288,21 +323,27 @@ class Profile(commands.Cog):
 
         if member.joined_at:
 
-            embed.add_field(
-                name="Joined Server",
-                value=discord.utils.format_dt(
-                    member.joined_at,
-                    "D"
-                ),
-                inline=True
+            joined = discord.utils.format_dt(
+                member.joined_at,
+                "D"
             )
+
+        else:
+
+            joined = "Unknown"
+
+        embed.add_field(
+            name="📅 Joined Server",
+            value=joined,
+            inline=True
+        )
 
         # ---------------------------------
         # ACCOUNT CREATED
         # ---------------------------------
 
         embed.add_field(
-            name="Account Created",
+            name="🗓️ Account Created",
             value=discord.utils.format_dt(
                 member.created_at,
                 "D"
@@ -338,7 +379,7 @@ class Profile(commands.Cog):
         if bio:
 
             embed.add_field(
-                name="About",
+                name="📝 About",
                 value=bio,
                 inline=False
             )
@@ -347,23 +388,12 @@ class Profile(commands.Cog):
         # CUSTOM FIELDS
         # ---------------------------------
 
-        fields = db.fetchall(
-            "profile_fields"
+        fields = get_fields(
+            ctx.guild.id,
+            member.id
         )
 
         for field in fields:
-
-            if field.get(
-                "guild_id"
-            ) != ctx.guild.id:
-
-                continue
-
-            if field.get(
-                "user_id"
-            ) != member.id:
-
-                continue
 
             name = field.get(
                 "name"
@@ -374,7 +404,6 @@ class Profile(commands.Cog):
             )
 
             if not name or not value:
-
                 continue
 
             embed.add_field(
@@ -401,9 +430,10 @@ class Profile(commands.Cog):
 
     @command(
         "👤 Profile",
-        "Set or remove your profile bio",
+        "Set your profile bio",
         usage="<bio>"
     )
+    @commands.guild_only()
     async def setbio(
         self,
         ctx,
@@ -439,8 +469,8 @@ class Profile(commands.Cog):
         if len(bio) > 500:
 
             await ctx.send(
-                "❌ Your bio cannot be longer "
-                "than **500 characters**."
+                "❌ Your bio cannot exceed "
+                "**500 characters**."
             )
 
             return
@@ -462,14 +492,15 @@ class Profile(commands.Cog):
         )
 
     # =====================================
-    # SET BIRTHDAY
+    # BIRTHDAY
     # =====================================
 
     @command(
         "👤 Profile",
-        "Set your birthday for your profile and future celebrations",
+        "Save your birthday for your profile and future Edison celebrations",
         usage="<DD/MM[/YYYY]>"
     )
+    @commands.guild_only()
     async def birthday(
         self,
         ctx,
@@ -493,6 +524,11 @@ class Profile(commands.Cog):
             return
 
         parsed = None
+        year = None
+
+        # ---------------------------------
+        # DD/MM
+        # ---------------------------------
 
         try:
 
@@ -502,6 +538,13 @@ class Profile(commands.Cog):
             )
 
         except ValueError:
+            pass
+
+        # ---------------------------------
+        # DD/MM/YYYY
+        # ---------------------------------
+
+        if parsed is None:
 
             try:
 
@@ -510,26 +553,27 @@ class Profile(commands.Cog):
                     "%d/%m/%Y"
                 )
 
-            except ValueError:
+                year = parsed.year
 
+            except ValueError:
                 pass
 
-        if not parsed:
+        # ---------------------------------
+        # INVALID
+        # ---------------------------------
+
+        if parsed is None:
 
             await ctx.send(
-                "❌ Invalid birthday format.\n\n"
+                "❌ Invalid birthday.\n\n"
                 "Use `DD/MM` or `DD/MM/YYYY`."
             )
 
             return
 
-        parts = date.split("/")
-
-        year = None
-
-        if len(parts) == 3:
-
-            year = parsed.year
+        # ---------------------------------
+        # SAVE
+        # ---------------------------------
 
         db.update(
             "profiles",
@@ -545,13 +589,9 @@ class Profile(commands.Cog):
             )
         )
 
-        birthday_text = parsed.strftime(
-            "%B %d"
-        )
-
         await ctx.send(
-            f"🎂 Your birthday has been set to "
-            f"**{birthday_text}**!"
+            f"🎂 Birthday saved as "
+            f"**{parsed.strftime('%B %d')}**!"
         )
 
     # =====================================
@@ -562,6 +602,7 @@ class Profile(commands.Cog):
         "👤 Profile",
         "Remove your saved birthday"
     )
+    @commands.guild_only()
     async def removebirthday(
         self,
         ctx
@@ -587,18 +628,19 @@ class Profile(commands.Cog):
         )
 
         await ctx.send(
-            "🎂 Your saved birthday has been removed."
+            "🎂 Your birthday has been removed."
         )
 
     # =====================================
-    # SET BANNER
+    # BANNER
     # =====================================
 
     @command(
         "👤 Profile",
-        "Set or remove your profile banner",
+        "Set your profile banner",
         usage="<image URL>"
     )
+    @commands.guild_only()
     async def banner(
         self,
         ctx,
@@ -632,13 +674,21 @@ class Profile(commands.Cog):
 
         if not url.startswith(
             (
-                "https://",
-                "http://"
+                "http://",
+                "https://"
             )
         ):
 
             await ctx.send(
                 "❌ Please provide a valid image URL."
+            )
+
+            return
+
+        if len(url) > 1000:
+
+            await ctx.send(
+                "❌ That URL is too long."
             )
 
             return
@@ -665,9 +715,10 @@ class Profile(commands.Cog):
 
     @command(
         "👤 Profile",
-        "Set or remove your profile embed color",
+        "Set your profile embed color",
         usage="<color>"
     )
+    @commands.guild_only()
     async def profilecolor(
         self,
         ctx,
@@ -707,9 +758,9 @@ class Profile(commands.Cog):
         if color_value is None:
 
             await ctx.send(
-                "❌ I don't recognize that color.\n\n"
-                "Use `Shaka colors` to see "
-                "the available colors."
+                "❌ I don't recognize that color.\n"
+                "Use `Shaka colors` to see the "
+                "available colors."
             )
 
             return
@@ -727,8 +778,8 @@ class Profile(commands.Cog):
         )
 
         await ctx.send(
-            f"🎨 Your profile color has been "
-            f"set to **{color.lower()}**."
+            f"🎨 Your profile color is now "
+            f"**{color.lower()}**."
         )
 
     # =====================================
@@ -737,9 +788,10 @@ class Profile(commands.Cog):
 
     @command(
         "👤 Profile",
-        "Add or edit custom information on your profile",
+        "Add custom information to your profile",
         usage="<name> | <value>"
     )
+    @commands.guild_only()
     async def fieldadd(
         self,
         ctx,
@@ -750,10 +802,8 @@ class Profile(commands.Cog):
         if not arguments:
 
             await ctx.send(
-                "❌ Please provide a field.\n\n"
-                "Example:\n"
-                "`Shaka fieldadd Favorite Game | "
-                "Rocket League`"
+                "❌ Usage: "
+                "`Shaka fieldadd <name> | <value>`"
             )
 
             return
@@ -761,8 +811,11 @@ class Profile(commands.Cog):
         if "|" not in arguments:
 
             await ctx.send(
-                "❌ Separate the field name "
-                "and value with `|`."
+                "❌ Separate the name and value "
+                "with `|`.\n\n"
+                "Example:\n"
+                "`Shaka fieldadd Favorite Game | "
+                "Rocket League`"
             )
 
             return
@@ -778,8 +831,8 @@ class Profile(commands.Cog):
         if not name or not value:
 
             await ctx.send(
-                "❌ Both the field name "
-                "and value are required."
+                "❌ Both the field name and "
+                "value are required."
             )
 
             return
@@ -787,8 +840,8 @@ class Profile(commands.Cog):
         if len(name) > 50:
 
             await ctx.send(
-                "❌ Field names can only be "
-                "**50 characters** long."
+                "❌ Field names cannot exceed "
+                "**50 characters**."
             )
 
             return
@@ -796,44 +849,44 @@ class Profile(commands.Cog):
         if len(value) > 200:
 
             await ctx.send(
-                "❌ Field values can only be "
-                "**200 characters** long."
+                "❌ Field values cannot exceed "
+                "**200 characters**."
             )
 
             return
 
-        # ---------------------------------
-        # FIND EXISTING FIELD
-        # ---------------------------------
-
-        fields = db.fetchall(
-            "profile_fields"
+        fields = get_fields(
+            ctx.guild.id,
+            ctx.author.id
         )
+
+        # ---------------------------------
+        # CHECK EXISTING FIELD
+        # ---------------------------------
 
         existing = None
 
         for field in fields:
 
-            if (
-                field.get("guild_id")
-                == ctx.guild.id
-                and
-                field.get("user_id")
-                == ctx.author.id
-                and
-                field.get("name")
-                == name
-            ):
+            if field.get(
+                "name",
+                ""
+            ).lower() == name.lower():
 
                 existing = field
 
                 break
+
+        # ---------------------------------
+        # UPDATE
+        # ---------------------------------
 
         if existing:
 
             db.update(
                 "profile_fields",
                 {
+                    "name": name,
                     "value": value
                 },
                 "id = ?",
@@ -843,42 +896,27 @@ class Profile(commands.Cog):
             )
 
             await ctx.send(
-                f"✅ **{name}** has been updated."
+                f"✅ Updated profile field "
+                f"**{name}**."
             )
 
             return
 
         # ---------------------------------
-        # COUNT FIELDS
+        # LIMIT
         # ---------------------------------
 
-        user_fields = []
-
-        for field in fields:
-
-            if (
-                field.get("guild_id")
-                == ctx.guild.id
-                and
-                field.get("user_id")
-                == ctx.author.id
-            ):
-
-                user_fields.append(
-                    field
-                )
-
-        if len(user_fields) >= 10:
+        if len(fields) >= 10:
 
             await ctx.send(
-                "❌ You can have a maximum "
-                "of **10 custom fields**."
+                "❌ You can have up to "
+                "**10 custom fields**."
             )
 
             return
 
         # ---------------------------------
-        # CREATE FIELD
+        # INSERT
         # ---------------------------------
 
         db.insert(
@@ -898,8 +936,7 @@ class Profile(commands.Cog):
         )
 
         await ctx.send(
-            f"✅ Added **{name}** "
-            "to your profile."
+            f"✅ Added **{name}** to your profile."
         )
 
     # =====================================
@@ -908,9 +945,10 @@ class Profile(commands.Cog):
 
     @command(
         "👤 Profile",
-        "Remove a custom field from your profile",
+        "Remove a custom profile field",
         usage="<name>"
     )
+    @commands.guild_only()
     async def fieldremove(
         self,
         ctx,
@@ -918,34 +956,28 @@ class Profile(commands.Cog):
         name: str
     ):
 
-        fields = db.fetchall(
-            "profile_fields"
+        fields = get_fields(
+            ctx.guild.id,
+            ctx.author.id
         )
 
-        field = None
+        target = None
 
-        for item in fields:
+        for field in fields:
 
-            if (
-                item.get("guild_id")
-                == ctx.guild.id
-                and
-                item.get("user_id")
-                == ctx.author.id
-                and
-                item.get("name")
-                == name
-            ):
+            if field.get(
+                "name",
+                ""
+            ).lower() == name.lower():
 
-                field = item
+                target = field
 
                 break
 
-        if not field:
+        if not target:
 
             await ctx.send(
-                "❌ I couldn't find that "
-                "profile field."
+                "❌ I couldn't find that profile field."
             )
 
             return
@@ -954,12 +986,12 @@ class Profile(commands.Cog):
             "profile_fields",
             "id = ?",
             (
-                field["id"],
+                target["id"],
             )
         )
 
         await ctx.send(
-            f"🗑️ Removed **{name}** "
+            f"🗑️ Removed **{target['name']}** "
             "from your profile."
         )
 
@@ -969,12 +1001,27 @@ class Profile(commands.Cog):
 
     @command(
         "👤 Profile",
-        "Remove all custom fields from your profile"
+        "Remove all custom profile fields"
     )
+    @commands.guild_only()
     async def fieldclear(
         self,
         ctx
     ):
+
+        fields = get_fields(
+            ctx.guild.id,
+            ctx.author.id
+        )
+
+        if not fields:
+
+            await ctx.send(
+                "ℹ️ You don't have any "
+                "custom profile fields."
+            )
+
+            return
 
         db.delete(
             "profile_fields",
@@ -986,7 +1033,7 @@ class Profile(commands.Cog):
         )
 
         await ctx.send(
-            "🗑️ All your custom profile fields "
+            "🗑️ All custom profile fields "
             "have been removed."
         )
 
@@ -998,6 +1045,7 @@ class Profile(commands.Cog):
         "👤 Profile",
         "Reset your profile customization"
     )
+    @commands.guild_only()
     async def profilereset(
         self,
         ctx
@@ -1008,6 +1056,7 @@ class Profile(commands.Cog):
             ctx.author.id
         )
 
+        # Keep birthday!
         db.update(
             "profiles",
             {
@@ -1034,9 +1083,8 @@ class Profile(commands.Cog):
         await ctx.send(
             "♻️ Your profile customization "
             "has been reset.\n\n"
-            "Your birthday was kept because "
-            "Edison will use it for birthday "
-            "celebrations. 🎂"
+            "🎂 Your birthday was kept for "
+            "future Edison celebrations."
         )
 
 
@@ -1048,4 +1096,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Profile(bot)
-)
+            )

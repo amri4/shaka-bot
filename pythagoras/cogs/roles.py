@@ -82,16 +82,14 @@ class RoleConverter(commands.Converter):
             )
         ]
 
-        # Only one result
         if len(matches) == 1:
 
             return matches[0]
 
-        # Multiple results
         if matches:
 
             names = "\n".join(
-                f"• **{role.name}**"
+                f"• {role.mention}"
                 for role in matches[:10]
             )
 
@@ -261,7 +259,10 @@ class Roles(commands.Cog):
         "🔵 Roles",
         "Show all server roles"
     )
-    async def roles(self, ctx):
+    async def roles(
+        self,
+        ctx
+    ):
 
         roles = [
             role
@@ -278,8 +279,9 @@ class Roles(commands.Cog):
 
         roles.reverse()
 
+        # Actual clickable role mentions
         text = "\n".join(
-            f"• **{role.name}**"
+            f"• {role.mention}"
             for role in roles
         )
 
@@ -335,8 +337,9 @@ class Roles(commands.Cog):
 
         matches = matches[:25]
 
+        # Actual clickable role mentions
         text = "\n".join(
-            f"• **{role.name}**"
+            f"• {role.mention}"
             for role in matches
         )
 
@@ -392,7 +395,7 @@ class Roles(commands.Cog):
 
             await ctx.send(
                 f"❌ {member.mention} already has "
-                f"**{role.name}**."
+                f"{role.mention}."
             )
             return
 
@@ -402,7 +405,7 @@ class Roles(commands.Cog):
         )
 
         await ctx.send(
-            f"✅ Added **{role.name}** to "
+            f"✅ Added {role.mention} to "
             f"{member.mention}."
         )
 
@@ -444,7 +447,7 @@ class Roles(commands.Cog):
 
             await ctx.send(
                 f"❌ {member.mention} doesn't have "
-                f"**{role.name}**."
+                f"{role.mention}."
             )
             return
 
@@ -454,7 +457,7 @@ class Roles(commands.Cog):
         )
 
         await ctx.send(
-            f"✅ Removed **{role.name}** from "
+            f"✅ Removed {role.mention} from "
             f"{member.mention}."
         )
 
@@ -554,8 +557,8 @@ class Roles(commands.Cog):
         )
 
         await ctx.send(
-            f"↕️ Moved **{role.name}** "
-            f"**{position}** **{target.name}**."
+            f"↕️ Moved {role.mention} "
+            f"**{position}** {target.mention}."
         )
 
     # =========================================
@@ -615,7 +618,7 @@ class Roles(commands.Cog):
         )
 
         await ctx.send(
-            f"🎨 Changed **{role.name}** "
+            f"🎨 Changed {role.mention} "
             f"to `{color}`."
         )
 
@@ -660,7 +663,7 @@ class Roles(commands.Cog):
 
         await ctx.send(
             f"🎨 Reset the color of "
-            f"**{role.name}**."
+            f"{role.mention}."
         )
 
     # =========================================
@@ -702,4 +705,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Roles(bot)
-            )
+        )

@@ -36,7 +36,7 @@ db.create_table(
 
 
 # =========================================
-# CUSTOM PROFILE FIELDS
+# PROFILE FIELDS TABLE
 # =========================================
 
 db.create_table(
@@ -75,16 +75,26 @@ def get_profile(
 
     db.insert(
         "profiles",
-        {
-            "guild_id": guild_id,
-            "user_id": user_id,
-            "birthday_month": None,
-            "birthday_day": None,
-            "birthday_year": None,
-            "bio": None,
-            "banner": None,
-            "profile_color": None
-        }
+        (
+            "guild_id",
+            "user_id",
+            "birthday_month",
+            "birthday_day",
+            "birthday_year",
+            "bio",
+            "banner",
+            "profile_color"
+        ),
+        (
+            guild_id,
+            user_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None
+        )
     )
 
     return db.fetchone(
@@ -98,6 +108,28 @@ def get_profile(
 
 
 # =========================================
+# GET PROFILE VALUE
+# =========================================
+
+def profile_value(
+    profile,
+    key
+):
+
+    if not profile:
+        return None
+
+    if isinstance(
+        profile,
+        dict
+    ):
+
+        return profile.get(key)
+
+    return None
+
+
+# =========================================
 # GET EMBED COLOR
 # =========================================
 
@@ -106,7 +138,8 @@ def get_embed_color(
     member
 ):
 
-    profile_color = profile.get(
+    profile_color = profile_value(
+        profile,
         "profile_color"
     )
 
@@ -125,7 +158,6 @@ def get_embed_color(
 
             pass
 
-    # Use Discord role color
     if member.color != discord.Color.default():
 
         return member.color
@@ -141,11 +173,13 @@ def get_birthday(
     profile
 ):
 
-    month = profile.get(
+    month = profile_value(
+        profile,
         "birthday_month"
     )
 
-    day = profile.get(
+    day = profile_value(
+        profile,
         "birthday_day"
     )
 
@@ -184,7 +218,7 @@ class Profile(commands.Cog):
         self.bot = bot
 
     # =====================================
-    # VIEW PROFILE
+    # PROFILE
     # =====================================
 
     @command(
@@ -227,7 +261,8 @@ class Profile(commands.Cog):
         # BANNER
         # ---------------------------------
 
-        banner = profile.get(
+        banner = profile_value(
+            profile,
             "banner"
         )
 
@@ -295,7 +330,8 @@ class Profile(commands.Cog):
         # BIO
         # ---------------------------------
 
-        bio = profile.get(
+        bio = profile_value(
+            profile,
             "bio"
         )
 
@@ -312,15 +348,22 @@ class Profile(commands.Cog):
         # ---------------------------------
 
         fields = db.fetchall(
-            "profile_fields",
-            "guild_id = ? AND user_id = ?",
-            (
-                ctx.guild.id,
-                member.id
-            )
+            "profile_fields"
         )
 
         for field in fields:
+
+            if field.get(
+                "guild_id"
+            ) != ctx.guild.id:
+
+                continue
+
+            if field.get(
+                "user_id"
+            ) != member.id:
+
+                continue
 
             name = field.get(
                 "name"
@@ -451,10 +494,6 @@ class Profile(commands.Cog):
 
         parsed = None
 
-        # ---------------------------------
-        # DD/MM
-        # ---------------------------------
-
         try:
 
             parsed = datetime.strptime(
@@ -463,10 +502,6 @@ class Profile(commands.Cog):
             )
 
         except ValueError:
-
-            # ---------------------------------
-            # DD/MM/YYYY
-            # ---------------------------------
 
             try:
 
@@ -495,10 +530,6 @@ class Profile(commands.Cog):
         if len(parts) == 3:
 
             year = parsed.year
-
-        # ---------------------------------
-        # SAVE
-        # ---------------------------------
 
         db.update(
             "profiles",
@@ -701,7 +732,7 @@ class Profile(commands.Cog):
         )
 
     # =====================================
-    # ADD / EDIT CUSTOM FIELD
+    # ADD / EDIT FIELD
     # =====================================
 
     @command(
@@ -731,10 +762,7 @@ class Profile(commands.Cog):
 
             await ctx.send(
                 "❌ Separate the field name "
-                "and value with `|`.\n\n"
-                "Example:\n"
-                "`Shaka fieldadd Favorite Game | "
-                "Rocket League`"
+                "and value with `|`."
             )
 
             return
@@ -778,16 +806,28 @@ class Profile(commands.Cog):
         # FIND EXISTING FIELD
         # ---------------------------------
 
-        existing = db.fetchone(
-            "profile_fields",
-            "guild_id = ? AND user_id = ? "
-            "AND name = ?",
-            (
-                ctx.guild.id,
-                ctx.author.id,
-                name
-            )
+        fields = db.fetchall(
+            "profile_fields"
         )
+
+        existing = None
+
+        for field in fields:
+
+            if (
+                field.get("guild_id")
+                == ctx.guild.id
+                and
+                field.get("user_id")
+                == ctx.author.id
+                and
+                field.get("name")
+                == name
+            ):
+
+                existing = field
+
+                break
 
         if existing:
 
@@ -809,19 +849,26 @@ class Profile(commands.Cog):
             return
 
         # ---------------------------------
-        # FIELD LIMIT
+        # COUNT FIELDS
         # ---------------------------------
 
-        fields = db.fetchall(
-            "profile_fields",
-            "guild_id = ? AND user_id = ?",
-            (
-                ctx.guild.id,
-                ctx.author.id
-            )
-        )
+        user_fields = []
 
-        if len(fields) >= 10:
+        for field in fields:
+
+            if (
+                field.get("guild_id")
+                == ctx.guild.id
+                and
+                field.get("user_id")
+                == ctx.author.id
+            ):
+
+                user_fields.append(
+                    field
+                )
+
+        if len(user_fields) >= 10:
 
             await ctx.send(
                 "❌ You can have a maximum "
@@ -836,12 +883,18 @@ class Profile(commands.Cog):
 
         db.insert(
             "profile_fields",
-            {
-                "guild_id": ctx.guild.id,
-                "user_id": ctx.author.id,
-                "name": name,
-                "value": value
-            }
+            (
+                "guild_id",
+                "user_id",
+                "name",
+                "value"
+            ),
+            (
+                ctx.guild.id,
+                ctx.author.id,
+                name,
+                value
+            )
         )
 
         await ctx.send(
@@ -850,7 +903,7 @@ class Profile(commands.Cog):
         )
 
     # =====================================
-    # REMOVE CUSTOM FIELD
+    # REMOVE FIELD
     # =====================================
 
     @command(
@@ -865,16 +918,28 @@ class Profile(commands.Cog):
         name: str
     ):
 
-        field = db.fetchone(
-            "profile_fields",
-            "guild_id = ? AND user_id = ? "
-            "AND name = ?",
-            (
-                ctx.guild.id,
-                ctx.author.id,
-                name
-            )
+        fields = db.fetchall(
+            "profile_fields"
         )
+
+        field = None
+
+        for item in fields:
+
+            if (
+                item.get("guild_id")
+                == ctx.guild.id
+                and
+                item.get("user_id")
+                == ctx.author.id
+                and
+                item.get("name")
+                == name
+            ):
+
+                field = item
+
+                break
 
         if not field:
 
@@ -899,7 +964,7 @@ class Profile(commands.Cog):
         )
 
     # =====================================
-    # CLEAR CUSTOM FIELDS
+    # CLEAR FIELDS
     # =====================================
 
     @command(
@@ -943,10 +1008,6 @@ class Profile(commands.Cog):
             ctx.author.id
         )
 
-        # ---------------------------------
-        # RESET CUSTOMIZATION
-        # ---------------------------------
-
         db.update(
             "profiles",
             {
@@ -961,10 +1022,6 @@ class Profile(commands.Cog):
             )
         )
 
-        # ---------------------------------
-        # DELETE CUSTOM FIELDS
-        # ---------------------------------
-
         db.delete(
             "profile_fields",
             "guild_id = ? AND user_id = ?",
@@ -973,10 +1030,6 @@ class Profile(commands.Cog):
                 ctx.author.id
             )
         )
-
-        # ---------------------------------
-        # KEEP BIRTHDAY
-        # ---------------------------------
 
         await ctx.send(
             "♻️ Your profile customization "
@@ -995,4 +1048,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Profile(bot)
-    )
+)

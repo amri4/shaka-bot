@@ -1,8 +1,24 @@
 import discord
+import unicodedata
+
 from discord.ext import commands
 
 from utils.command import command
 from utils.role_colors import parse_role_color
+
+
+# =========================================
+# ROLE NAME NORMALIZER
+# =========================================
+
+def normalize_role_name(text):
+
+    text = unicodedata.normalize(
+        "NFKC",
+        text
+    )
+
+    return text.casefold().strip()
 
 
 # =========================================
@@ -13,11 +29,18 @@ class RoleConverter(commands.Converter):
 
     async def convert(self, ctx, argument):
 
-        # Role mention
+        # =====================================
+        # ROLE MENTION
+        # =====================================
+
         if argument.startswith("<@&") and argument.endswith(">"):
+
             argument = argument[3:-1]
 
-        # Role ID
+        # =====================================
+        # ROLE ID
+        # =====================================
+
         if argument.isdigit():
 
             role = ctx.guild.get_role(
@@ -27,16 +50,55 @@ class RoleConverter(commands.Converter):
             if role:
                 return role
 
-        # Exact role name
-        role = discord.utils.find(
-            lambda r: (
-                r.name.lower() == argument.lower()
-            ),
-            ctx.guild.roles
+        # =====================================
+        # NORMALIZED SEARCH
+        # =====================================
+
+        search = normalize_role_name(
+            argument
         )
 
-        if role:
-            return role
+        # =====================================
+        # EXACT MATCH
+        # =====================================
+
+        for role in ctx.guild.roles:
+
+            if normalize_role_name(
+                role.name
+            ) == search:
+
+                return role
+
+        # =====================================
+        # PARTIAL MATCH
+        # =====================================
+
+        matches = [
+            role
+            for role in ctx.guild.roles
+            if search in normalize_role_name(
+                role.name
+            )
+        ]
+
+        # Only one result
+        if len(matches) == 1:
+
+            return matches[0]
+
+        # Multiple results
+        if matches:
+
+            names = "\n".join(
+                f"• **{role.name}**"
+                for role in matches[:10]
+            )
+
+            raise commands.BadArgument(
+                "Multiple roles found:\n"
+                + names
+            )
 
         raise commands.BadArgument(
             "Role not found."
@@ -250,25 +312,27 @@ class Roles(commands.Cog):
         search: str
     ):
 
-        search = search.lower().strip()
+        search = normalize_role_name(
+            search
+        )
 
         matches = [
             role
             for role in ctx.guild.roles
             if role != ctx.guild.default_role
-            and search in role.name.lower()
+            and search in normalize_role_name(
+                role.name
+            )
         ]
 
         if not matches:
 
             await ctx.send(
-                f"❌ No roles found matching "
+                "❌ No roles found matching "
                 f"**{search}**."
             )
             return
 
-        # Discord embeds can become very large,
-        # so limit search results.
         matches = matches[:25]
 
         text = "\n".join(
@@ -626,8 +690,7 @@ class Roles(commands.Cog):
         ):
 
             await ctx.send(
-                "❌ I couldn't find that role "
-                "or member."
+                f"❌ {error}"
             )
 
 
@@ -639,4 +702,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Roles(bot)
-    )
+            )

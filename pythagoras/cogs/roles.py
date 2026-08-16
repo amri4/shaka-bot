@@ -12,11 +12,12 @@ class RoleConverter(commands.Converter):
 
     async def convert(self, ctx, argument):
 
-        # Remove role mention formatting if supplied
+        # Role mention
         if argument.startswith("<@&") and argument.endswith(">"):
+
             argument = argument[3:-1]
 
-        # Try role ID
+        # Role ID
         if argument.isdigit():
 
             role = ctx.guild.get_role(
@@ -26,7 +27,7 @@ class RoleConverter(commands.Converter):
             if role:
                 return role
 
-        # Try exact role name
+        # Exact role name
         role = discord.utils.find(
             lambda r: (
                 r.name.lower() == argument.lower()
@@ -42,6 +43,32 @@ class RoleConverter(commands.Converter):
         )
 
 
+# =========================================
+# MEMBER CONVERTER
+# =========================================
+
+class MemberConverter(commands.Converter):
+
+    async def convert(self, ctx, argument):
+
+        try:
+
+            return await commands.MemberConverter().convert(
+                ctx,
+                argument
+            )
+
+        except commands.BadArgument:
+
+            raise commands.BadArgument(
+                "Member not found."
+            )
+
+
+# =========================================
+# ROLES COG
+# =========================================
+
 class Roles(commands.Cog):
 
     def __init__(self, bot):
@@ -51,9 +78,19 @@ class Roles(commands.Cog):
     # CREATE ROLE
     # =========================================
 
-    @command("🔵 Roles", "Create a new server role")
-    @commands.has_guild_permissions(manage_roles=True)
-    async def addrole(self, ctx, *, name: str):
+    @command(
+        "🔵 Roles",
+        "Create a new server role"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
+    async def addrole(
+        self,
+        ctx,
+        *,
+        name: str
+    ):
 
         role = await ctx.guild.create_role(
             name=name,
@@ -68,8 +105,13 @@ class Roles(commands.Cog):
     # DELETE ROLE
     # =========================================
 
-    @command("🔵 Roles", "Delete a server role")
-    @commands.has_guild_permissions(manage_roles=True)
+    @command(
+        "🔵 Roles",
+        "Delete a server role"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
     async def delrole(
         self,
         ctx,
@@ -87,7 +129,8 @@ class Roles(commands.Cog):
 
             await ctx.send(
                 "❌ I can't delete that role because "
-                "it's higher than or equal to my highest role."
+                "it's higher than or equal to my "
+                "highest role."
             )
             return
 
@@ -105,8 +148,13 @@ class Roles(commands.Cog):
     # EDIT ROLE
     # =========================================
 
-    @command("🔵 Roles", "Rename an existing server role")
-    @commands.has_guild_permissions(manage_roles=True)
+    @command(
+        "🔵 Roles",
+        "Rename an existing server role"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
     async def editrole(
         self,
         ctx,
@@ -126,7 +174,8 @@ class Roles(commands.Cog):
 
             await ctx.send(
                 "❌ I can't edit that role because "
-                "it's higher than or equal to my highest role."
+                "it's higher than or equal to my "
+                "highest role."
             )
             return
 
@@ -146,7 +195,10 @@ class Roles(commands.Cog):
     # LIST ROLES
     # =========================================
 
-    @command("🔵 Roles", "Show all server roles")
+    @command(
+        "🔵 Roles",
+        "Show all server roles"
+    )
     async def roles(self, ctx):
 
         roles = [
@@ -184,6 +236,163 @@ class Roles(commands.Cog):
         )
 
     # =========================================
+    # ROLE SEARCH
+    # =========================================
+
+    @command(
+        "🔵 Roles",
+        "Search for server roles"
+    )
+    async def rolesearch(
+        self,
+        ctx,
+        *,
+        search: str
+    ):
+
+        search = search.lower()
+
+        matches = [
+            role
+            for role in ctx.guild.roles
+            if role != ctx.guild.default_role
+            and search in role.name.lower()
+        ]
+
+        if not matches:
+
+            await ctx.send(
+                f"❌ No roles found matching "
+                f"**{search}**."
+            )
+            return
+
+        matches = matches[:25]
+
+        text = "\n".join(
+            f"• **{role.name}**"
+            for role in matches
+        )
+
+        embed = discord.Embed(
+            title="🔎 Role Search",
+            description=text,
+            color=discord.Color.blue()
+        )
+
+        embed.set_footer(
+            text=f"{len(matches)} result(s)"
+        )
+
+        await ctx.send(
+            embed=embed
+        )
+
+    # =========================================
+    # GIVE ROLE
+    # =========================================
+
+    @command(
+        "🔵 Roles",
+        "Give a role to a member"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
+    async def giverole(
+        self,
+        ctx,
+        member: MemberConverter,
+        role: RoleConverter
+    ):
+
+        if role == ctx.guild.default_role:
+
+            await ctx.send(
+                "❌ I can't assign @everyone."
+            )
+            return
+
+        if role >= ctx.guild.me.top_role:
+
+            await ctx.send(
+                "❌ I can't assign that role because "
+                "it's higher than or equal to my "
+                "highest role."
+            )
+            return
+
+        if role in member.roles:
+
+            await ctx.send(
+                f"❌ {member.mention} already has "
+                f"**{role.name}**."
+            )
+            return
+
+        await member.add_roles(
+            role,
+            reason=f"Role given by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"✅ Added **{role.name}** to "
+            f"{member.mention}."
+        )
+
+    # =========================================
+    # TAKE ROLE
+    # =========================================
+
+    @command(
+        "🔵 Roles",
+        "Remove a role from a member"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
+    async def takerole(
+        self,
+        ctx,
+        member: MemberConverter,
+        role: RoleConverter
+    ):
+
+        if role == ctx.guild.default_role:
+
+            await ctx.send(
+                "❌ I can't remove @everyone."
+            )
+            return
+
+        if role >= ctx.guild.me.top_role:
+
+            await ctx.send(
+                "❌ I can't remove that role because "
+                "it's higher than or equal to my "
+                "highest role."
+            )
+            return
+
+        if role not in member.roles:
+
+            await ctx.send(
+                f"❌ {member.mention} doesn't have "
+                f"**{role.name}**."
+            )
+            return
+
+        await member.remove_roles(
+            role,
+            reason=f"Role removed by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"✅ Removed **{role.name}** from "
+            f"{member.mention}."
+        )
+
+    # =========================================
     # MOVE ROLE
     # =========================================
 
@@ -191,7 +400,9 @@ class Roles(commands.Cog):
         "🔵 Roles",
         "Move a role above or below another role"
     )
-    @commands.has_guild_permissions(manage_roles=True)
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
     async def moverole(
         self,
         ctx,
@@ -200,9 +411,18 @@ class Roles(commands.Cog):
         target: RoleConverter
     ):
 
-        # =====================================
-        # BASIC CHECKS
-        # =====================================
+        position = position.lower()
+
+        if position not in (
+            "above",
+            "below"
+        ):
+
+            await ctx.send(
+                "❌ Position must be "
+                "`above` or `below`."
+            )
+            return
 
         if role == ctx.guild.default_role:
 
@@ -226,27 +446,6 @@ class Roles(commands.Cog):
             )
             return
 
-        # =====================================
-        # POSITION CHECK
-        # =====================================
-
-        position = position.lower()
-
-        if position not in (
-            "above",
-            "below"
-        ):
-
-            await ctx.send(
-                "❌ Position must be "
-                "`above` or `below`."
-            )
-            return
-
-        # =====================================
-        # BOT HIERARCHY
-        # =====================================
-
         bot_role = ctx.guild.me.top_role
 
         if role >= bot_role:
@@ -267,10 +466,6 @@ class Roles(commands.Cog):
             )
             return
 
-        # =====================================
-        # MOVE
-        # =====================================
-
         if position == "above":
 
             new_position = target.position + 1
@@ -279,7 +474,6 @@ class Roles(commands.Cog):
 
             new_position = target.position - 1
 
-        # Prevent invalid position
         new_position = max(
             1,
             min(
@@ -325,7 +519,8 @@ class Roles(commands.Cog):
         ):
 
             await ctx.send(
-                "❌ I couldn't find that role."
+                "❌ I couldn't find that role "
+                "or member."
             )
 
 
@@ -337,4 +532,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Roles(bot)
-        )
+                )

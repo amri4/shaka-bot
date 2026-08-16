@@ -1,6 +1,6 @@
 import asyncio
-import discord
 
+import discord
 from discord.ext import commands
 
 import mycord
@@ -27,6 +27,7 @@ db.create_table(
     """
 )
 
+
 db.create_table(
     "reactionrole_entries",
     """
@@ -45,6 +46,7 @@ db.create_table(
 class ReactionRoles(commands.Cog):
 
     def __init__(self, bot):
+
         self.bot = bot
         self.sessions = set()
 
@@ -52,7 +54,10 @@ class ReactionRoles(commands.Cog):
     # GET CONFIGURED CHANNEL
     # =====================================
 
-    def get_channel(self, guild):
+    def get_reaction_channel(
+        self,
+        guild
+    ):
 
         data = db.fetchone(
             "server_config",
@@ -63,27 +68,26 @@ class ReactionRoles(commands.Cog):
         if not data:
             return None
 
-        # server_config:
-        #
-        # 0 guild_id
-        # 1 welcome_channel_id
-        # 2 goodbye_channel_id
-        # 3 welcome_role_id
-        # 4 member_role_id
-        # 5 reaction_role_channel_id
+        if len(data) < 6:
+            return None
 
         channel_id = data[5]
 
         if not channel_id:
             return None
 
-        return guild.get_channel(channel_id)
+        return guild.get_channel(
+            channel_id
+        )
 
     # =====================================
     # WAIT FOR MESSAGE
     # =====================================
 
-    async def wait_message(self, ctx):
+    async def wait_message(
+        self,
+        ctx
+    ):
 
         def check(message):
 
@@ -103,7 +107,7 @@ class ReactionRoles(commands.Cog):
         except asyncio.TimeoutError:
 
             await ctx.send(
-                "⌛ Setup timed out."
+                "⌛ Reaction-role setup timed out."
             )
 
             return None
@@ -112,7 +116,11 @@ class ReactionRoles(commands.Cog):
     # FIND ROLE
     # =====================================
 
-    def find_role(self, guild, text):
+    def find_role(
+        self,
+        guild,
+        text
+    ):
 
         text = text.strip()
 
@@ -138,17 +146,19 @@ class ReactionRoles(commands.Cog):
             )
 
             if role:
+
                 return role
 
-        # Exact name
+        # Exact role name
         lowered = text.casefold()
 
         for role in guild.roles:
 
             if role.name.casefold() == lowered:
+
                 return role
 
-        # Partial name
+        # Partial role name
         matches = [
             role
             for role in guild.roles
@@ -156,6 +166,7 @@ class ReactionRoles(commands.Cog):
         ]
 
         if len(matches) == 1:
+
             return matches[0]
 
         return None
@@ -164,11 +175,15 @@ class ReactionRoles(commands.Cog):
     # COLOR
     # =====================================
 
-    def parse_color(self, value):
+    def parse_color(
+        self,
+        value
+    ):
 
         value = value.strip().casefold()
 
         colors = {
+
             "red": discord.Color.red(),
             "blue": discord.Color.blue(),
             "green": discord.Color.green(),
@@ -189,12 +204,15 @@ class ReactionRoles(commands.Cog):
         }
 
         if value in colors:
+
             return colors[value]
 
         if value.startswith("#"):
+
             value = value[1:]
 
         if len(value) != 6:
+
             return None
 
         try:
@@ -218,9 +236,11 @@ class ReactionRoles(commands.Cog):
     @commands.has_guild_permissions(
         manage_roles=True
     )
-    async def rrcreate(self, ctx):
+    async def rrcreate(
+        self,
+        ctx
+    ):
 
-        # Prevent multiple sessions
         if ctx.author.id in self.sessions:
 
             await ctx.send(
@@ -230,15 +250,15 @@ class ReactionRoles(commands.Cog):
 
             return
 
-        channel = self.get_channel(
+        channel = self.get_reaction_channel(
             ctx.guild
         )
 
         if not channel:
 
             await ctx.send(
-                "❌ No Reaction Role Channel is configured.\n\n"
-                "Use the configuration command first."
+                "❌ No reaction-role channel is configured.\n\n"
+                "Use `setrrchannel #channel` first."
             )
 
             return
@@ -254,12 +274,14 @@ class ReactionRoles(commands.Cog):
             # =================================
 
             await ctx.send(
-                "📝 **Step 1/4 — Panel title**\n\n"
-                "Send the title.\n"
+                "📝 **Step 1/4 — Title**\n\n"
+                "Send the title of the panel.\n"
                 "Type `cancel` to stop."
             )
 
-            message = await self.wait_message(ctx)
+            message = await self.wait_message(
+                ctx
+            )
 
             if not message:
                 return
@@ -279,11 +301,13 @@ class ReactionRoles(commands.Cog):
             # =================================
 
             await ctx.send(
-                "📄 **Step 2/4 — Panel description**\n\n"
-                "Send the description."
+                "📄 **Step 2/4 — Description**\n\n"
+                "Send the panel description."
             )
 
-            message = await self.wait_message(ctx)
+            message = await self.wait_message(
+                ctx
+            )
 
             if not message:
                 return
@@ -303,8 +327,8 @@ class ReactionRoles(commands.Cog):
             # =================================
 
             await ctx.send(
-                "🎨 **Step 3/4 — Embed color**\n\n"
-                "You can use a color name or HEX.\n\n"
+                "🎨 **Step 3/4 — Embed Color**\n\n"
+                "Send a color name or HEX code.\n\n"
                 "Examples:\n"
                 "`blue`\n"
                 "`red`\n"
@@ -312,7 +336,9 @@ class ReactionRoles(commands.Cog):
                 "`#5865F2`"
             )
 
-            message = await self.wait_message(ctx)
+            message = await self.wait_message(
+                ctx
+            )
 
             if not message:
                 return
@@ -342,10 +368,10 @@ class ReactionRoles(commands.Cog):
             # =================================
 
             await ctx.send(
-                "🎭 **Step 4/4 — Reaction roles**\n\n"
-                "Send each role like this:\n"
+                "🎭 **Step 4/4 — Reaction Roles**\n\n"
+                "Add roles using:\n"
                 "`🎮 Gamer`\n\n"
-                "You can also use:\n"
+                "or:\n"
                 "`🎮 @Gamer`\n\n"
                 "Send `done` when finished."
             )
@@ -354,7 +380,9 @@ class ReactionRoles(commands.Cog):
 
             while True:
 
-                message = await self.wait_message(ctx)
+                message = await self.wait_message(
+                    ctx
+                )
 
                 if not message:
                     return
@@ -362,6 +390,7 @@ class ReactionRoles(commands.Cog):
                 content = message.content.strip()
 
                 if content.casefold() == "done":
+
                     break
 
                 if content.casefold() == "cancel":
@@ -379,8 +408,8 @@ class ReactionRoles(commands.Cog):
                 if len(parts) != 2:
 
                     await ctx.send(
-                        "❌ Use this format:\n"
-                        "`emoji role`"
+                        "❌ Use:\n"
+                        "`emoji role_name`"
                     )
 
                     continue
@@ -437,7 +466,7 @@ class ReactionRoles(commands.Cog):
                 )
 
                 await ctx.send(
-                    f"✅ Added {emoji} → {role.name}"
+                    f"✅ Added `{emoji}` → **{role.name}**"
                 )
 
             if not entries:
@@ -467,7 +496,9 @@ class ReactionRoles(commands.Cog):
             )
 
             embed.set_footer(
-                text="React below to receive or remove a role."
+                text=(
+                    "React below to receive or remove a role."
+                )
             )
 
             await ctx.send(
@@ -483,11 +514,13 @@ class ReactionRoles(commands.Cog):
             # =================================
 
             await ctx.send(
-                "✅ Send `yes` to create the panel.\n"
-                "❌ Send `no` to cancel."
+                "Send `yes` to create the panel.\n"
+                "Send `no` to cancel."
             )
 
-            message = await self.wait_message(ctx)
+            message = await self.wait_message(
+                ctx
+            )
 
             if not message:
                 return
@@ -547,8 +580,8 @@ class ReactionRoles(commands.Cog):
             if not panel:
 
                 await ctx.send(
-                    "⚠️ Panel was sent, but I couldn't "
-                    "save it to the database."
+                    "⚠️ The panel was sent, but I couldn't "
+                    "find its database record."
                 )
 
                 return
@@ -556,7 +589,7 @@ class ReactionRoles(commands.Cog):
             panel_id = panel[0]
 
             # =================================
-            # SAVE ENTRIES
+            # SAVE ROLES
             # =================================
 
             for entry in entries:
@@ -604,13 +637,20 @@ class ReactionRoles(commands.Cog):
         "🔵 Reaction Roles",
         "Show reaction-role panels"
     )
-    async def rrlist(self, ctx):
+    async def rrlist(
+        self,
+        ctx
+    ):
 
         panels = db.fetchall(
-            "reactionrole_panels",
-            "guild_id = ?",
-            (ctx.guild.id,)
+            "reactionrole_panels"
         )
+
+        panels = [
+            panel
+            for panel in panels
+            if panel[1] == ctx.guild.id
+        ]
 
         if not panels:
 
@@ -633,14 +673,19 @@ class ReactionRoles(commands.Cog):
             )
 
             entries = db.fetchall(
-                "reactionrole_entries",
-                "panel_id = ?",
-                (panel[0],)
+                "reactionrole_entries"
             )
+
+            entries = [
+                entry
+                for entry in entries
+                if entry[1] == panel[0]
+            ]
 
             lines.append(
                 f"**{number}. {panel[4]}**\n"
-                f"📢 {channel.mention if channel else 'Unknown channel'}\n"
+                f"📢 "
+                f"{channel.mention if channel else 'Unknown channel'}\n"
                 f"🎭 {len(entries)} roles"
             )
 
@@ -648,6 +693,10 @@ class ReactionRoles(commands.Cog):
             title="🔵 Reaction Role Panels",
             description="\n\n".join(lines),
             color=discord.Color.blue()
+        )
+
+        embed.set_footer(
+            text=f"{len(panels)} panels"
         )
 
         await ctx.send(
@@ -665,13 +714,20 @@ class ReactionRoles(commands.Cog):
     @commands.has_guild_permissions(
         manage_roles=True
     )
-    async def rrdelete(self, ctx):
+    async def rrdelete(
+        self,
+        ctx
+    ):
 
         panels = db.fetchall(
-            "reactionrole_panels",
-            "guild_id = ?",
-            (ctx.guild.id,)
+            "reactionrole_panels"
         )
+
+        panels = [
+            panel
+            for panel in panels
+            if panel[1] == ctx.guild.id
+        ]
 
         if not panels:
 
@@ -696,7 +752,9 @@ class ReactionRoles(commands.Cog):
             "Send the number or `cancel`."
         )
 
-        message = await self.wait_message(ctx)
+        message = await self.wait_message(
+            ctx
+        )
 
         if not message:
             return
@@ -779,8 +837,9 @@ class ReactionRoles(commands.Cog):
         if payload.guild_id is None:
             return
 
-        if self.bot.user and (
-            payload.user_id == self.bot.user.id
+        if (
+            self.bot.user
+            and payload.user_id == self.bot.user.id
         ):
             return
 
@@ -860,8 +919,9 @@ class ReactionRoles(commands.Cog):
         if payload.guild_id is None:
             return
 
-        if self.bot.user and (
-            payload.user_id == self.bot.user.id
+        if (
+            self.bot.user
+            and payload.user_id == self.bot.user.id
         ):
             return
 
@@ -932,7 +992,9 @@ class ReactionRoles(commands.Cog):
     # CLEAN DELETED PANELS
     # =====================================
 
-    async def cleanup_deleted_panels(self):
+    async def cleanup_deleted_panels(
+        self
+    ):
 
         panels = db.fetchall(
             "reactionrole_panels"
@@ -979,13 +1041,16 @@ class ReactionRoles(commands.Cog):
     # =====================================
 
     @commands.Cog.listener()
-    async def on_ready(self):
+    async def on_ready(
+        self
+    ):
 
         if getattr(
             self,
             "_cleanup_done",
             False
         ):
+
             return
 
         self._cleanup_done = True
@@ -1001,4 +1066,4 @@ async def setup(bot):
 
     await bot.add_cog(
         ReactionRoles(bot)
-        )
+    )

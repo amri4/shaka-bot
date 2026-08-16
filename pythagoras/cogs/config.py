@@ -26,7 +26,7 @@ db.create_table(
 
 
 # =========================================
-# MIGRATE OLD DATABASES
+# MIGRATION
 # =========================================
 
 try:
@@ -124,6 +124,40 @@ class Config(commands.Cog):
         )
 
     # =====================================
+    # REMOVE WELCOME CHANNEL
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured welcome channel"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetwelcome(
+        self,
+        ctx
+    ):
+
+        self.ensure_config(
+            ctx.guild.id
+        )
+
+        db.update(
+            "server_config",
+            "welcome_channel_id = ?",
+            "guild_id = ?",
+            (
+                None,
+                ctx.guild.id
+            )
+        )
+
+        await ctx.send(
+            "✅ Welcome channel removed."
+        )
+
+    # =====================================
     # GOODBYE CHANNEL
     # =====================================
 
@@ -156,6 +190,40 @@ class Config(commands.Cog):
 
         await ctx.send(
             f"🚪 Goodbye channel set to {channel.mention}."
+        )
+
+    # =====================================
+    # REMOVE GOODBYE CHANNEL
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured goodbye channel"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetgoodbye(
+        self,
+        ctx
+    ):
+
+        self.ensure_config(
+            ctx.guild.id
+        )
+
+        db.update(
+            "server_config",
+            "goodbye_channel_id = ?",
+            "guild_id = ?",
+            (
+                None,
+                ctx.guild.id
+            )
+        )
+
+        await ctx.send(
+            "✅ Goodbye channel removed."
         )
 
     # =====================================
@@ -194,6 +262,40 @@ class Config(commands.Cog):
         )
 
     # =====================================
+    # REMOVE WELCOME ROLE
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured welcome role"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetwelcome_role(
+        self,
+        ctx
+    ):
+
+        self.ensure_config(
+            ctx.guild.id
+        )
+
+        db.update(
+            "server_config",
+            "welcome_role_id = ?",
+            "guild_id = ?",
+            (
+                None,
+                ctx.guild.id
+            )
+        )
+
+        await ctx.send(
+            "✅ Welcome role removed."
+        )
+
+    # =====================================
     # MEMBER ROLE
     # =====================================
 
@@ -226,6 +328,40 @@ class Config(commands.Cog):
 
         await ctx.send(
             f"👤 Member role set to {role.mention}."
+        )
+
+    # =====================================
+    # REMOVE MEMBER ROLE
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured member role"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetmember_role(
+        self,
+        ctx
+    ):
+
+        self.ensure_config(
+            ctx.guild.id
+        )
+
+        db.update(
+            "server_config",
+            "member_role_id = ?",
+            "guild_id = ?",
+            (
+                None,
+                ctx.guild.id
+            )
+        )
+
+        await ctx.send(
+            "✅ Member role removed."
         )
 
     # =====================================
@@ -264,7 +400,41 @@ class Config(commands.Cog):
         )
 
     # =====================================
-    # SHOW CONFIG
+    # REMOVE REACTION ROLE CHANNEL
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured reaction-role channel"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetrrchannel(
+        self,
+        ctx
+    ):
+
+        self.ensure_config(
+            ctx.guild.id
+        )
+
+        db.update(
+            "server_config",
+            "reaction_role_channel_id = ?",
+            "guild_id = ?",
+            (
+                None,
+                ctx.guild.id
+            )
+        )
+
+        await ctx.send(
+            "✅ Reaction-role channel removed."
+        )
+
+    # =====================================
+    # SHOW CONFIGURATION
     # =====================================
 
     @command(
@@ -374,7 +544,7 @@ class Config(commands.Cog):
         embed.add_field(
             name="👋 Welcome Role",
             value=(
-                welcome_role.name
+                welcome_role.mention
                 if welcome_role
                 else "Not configured"
             ),
@@ -384,7 +554,7 @@ class Config(commands.Cog):
         embed.add_field(
             name="👤 Member Role",
             value=(
-                member_role.name
+                member_role.mention
                 if member_role
                 else "Not configured"
             ),
@@ -409,27 +579,6 @@ class Config(commands.Cog):
             embed=embed
         )
 
-    # =====================================
-    # ERROR HANDLER
-    # =====================================
-
-    @commands.Cog.listener()
-    async def on_command_error(
-        self,
-        ctx,
-        error
-    ):
-
-        if isinstance(
-            error,
-            commands.MissingPermissions
-        ):
-
-            await ctx.send(
-                "❌ You need **Manage Server** "
-                "to use this command."
-            )
-
 
 # =========================================
 # SETUP
@@ -439,4 +588,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Config(bot)
-    )
+                )

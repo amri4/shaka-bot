@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 from utils.command import command
+from utils.role_colors import parse_role_color
 
 
 # =========================================
@@ -14,7 +15,6 @@ class RoleConverter(commands.Converter):
 
         # Role mention
         if argument.startswith("<@&") and argument.endswith(">"):
-
             argument = argument[3:-1]
 
         # Role ID
@@ -250,7 +250,7 @@ class Roles(commands.Cog):
         search: str
     ):
 
-        search = search.lower()
+        search = search.lower().strip()
 
         matches = [
             role
@@ -267,6 +267,8 @@ class Roles(commands.Cog):
             )
             return
 
+        # Discord embeds can become very large,
+        # so limit search results.
         matches = matches[:25]
 
         text = "\n".join(
@@ -493,6 +495,111 @@ class Roles(commands.Cog):
         )
 
     # =========================================
+    # SET ROLE COLOR
+    # =========================================
+
+    @command(
+        "🔵 Roles",
+        "Change the color of a server role"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
+    async def setrolecolor(
+        self,
+        ctx,
+        role: RoleConverter,
+        color: str
+    ):
+
+        if role == ctx.guild.default_role:
+
+            await ctx.send(
+                "❌ I can't change the color "
+                "of @everyone."
+            )
+            return
+
+        if role >= ctx.guild.me.top_role:
+
+            await ctx.send(
+                "❌ I can't change that role because "
+                "it's higher than or equal to my "
+                "highest role."
+            )
+            return
+
+        parsed_color = parse_role_color(
+            color
+        )
+
+        if parsed_color is None:
+
+            await ctx.send(
+                "❌ Invalid color.\n\n"
+                "Use a color name such as "
+                "`red`, `crimson`, `cyan`, "
+                "`gold`, `lavender`, etc.\n\n"
+                "Or use a hex code such as "
+                "`#5865F2`."
+            )
+            return
+
+        await role.edit(
+            color=discord.Color(parsed_color),
+            reason=f"Color changed by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"🎨 Changed **{role.name}** "
+            f"to `{color}`."
+        )
+
+    # =========================================
+    # RESET ROLE COLOR
+    # =========================================
+
+    @command(
+        "🔵 Roles",
+        "Reset a server role's color"
+    )
+    @commands.has_guild_permissions(
+        manage_roles=True
+    )
+    async def resetrolecolor(
+        self,
+        ctx,
+        role: RoleConverter
+    ):
+
+        if role == ctx.guild.default_role:
+
+            await ctx.send(
+                "❌ I can't change the color "
+                "of @everyone."
+            )
+            return
+
+        if role >= ctx.guild.me.top_role:
+
+            await ctx.send(
+                "❌ I can't change that role because "
+                "it's higher than or equal to my "
+                "highest role."
+            )
+            return
+
+        await role.edit(
+            color=discord.Color.default(),
+            reason=f"Color reset by {ctx.author}"
+        )
+
+        await ctx.send(
+            f"🎨 Reset the color of "
+            f"**{role.name}**."
+        )
+
+    # =========================================
     # ERROR HANDLING
     # =========================================
 
@@ -532,4 +639,4 @@ async def setup(bot):
 
     await bot.add_cog(
         Roles(bot)
-                )
+    )

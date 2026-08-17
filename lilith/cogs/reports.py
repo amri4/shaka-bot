@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from datetime import datetime, timedelta
+
 import mycord
 from utils.command import command
 
@@ -80,19 +82,29 @@ db.create_table(
 
 
 # =========================================================
-# MIGRATIONS
+# MIGRATION
 # =========================================================
 
 case_columns = {
+
     "channel_id": "INTEGER",
+
     "message_id": "INTEGER",
+
     "report_reason": "TEXT",
+
     "violation": "TEXT",
+
     "moderator_reason": "TEXT",
+
     "status": "TEXT",
+
     "reviewer_id": "INTEGER",
+
     "created_at": "TEXT",
+
     "reviewed_at": "TEXT",
+
     "resolved_at": "TEXT"
 }
 
@@ -108,21 +120,25 @@ for column, column_type in case_columns.items():
         )
 
     except Exception:
+
+        # Column already exists.
         pass
 
 
 # =========================================================
-# HELPERS
+# TIME
 # =========================================================
 
 def now():
 
-    from datetime import datetime
-
     return datetime.utcnow().isoformat()
 
 
-def safe_user(
+# =========================================================
+# GET MEMBER
+# =========================================================
+
+def get_member(
     guild,
     user_id
 ):
@@ -132,9 +148,10 @@ def safe_user(
     )
 
     if member:
+
         return member
 
-    return f"<@{user_id}>"
+    return None
 
 
 # =========================================================
@@ -186,7 +203,9 @@ class CaseReviewView(
 
             return
 
-        if case[8] == "RESOLVED":
+        status = case[10]
+
+        if status == "RESOLVED":
 
             await interaction.response.send_message(
                 "❌ This case has already been resolved.",
@@ -195,13 +214,18 @@ class CaseReviewView(
 
             return
 
-        reviewer_id = case[9]
+        reviewer_id = case[11]
 
-        if reviewer_id and reviewer_id != interaction.user.id:
+        if (
+            reviewer_id
+            and reviewer_id != interaction.user.id
+        ):
 
             await interaction.response.send_message(
-                f"❌ This case is already being reviewed by "
-                f"<@{reviewer_id}>.",
+                (
+                    "❌ This case is already being "
+                    f"reviewed by <@{reviewer_id}>."
+                ),
                 ephemeral=True
             )
 
@@ -227,7 +251,10 @@ class CaseReviewView(
         )
 
         await interaction.response.send_message(
-            f"👮 You are now reviewing **Case #{self.case_id}**.",
+            (
+                f"👮 You are now reviewing "
+                f"**Case #{self.case_id}**."
+            ),
             ephemeral=True
         )
 
@@ -285,19 +312,19 @@ class CaseReviewView(
 
         previous_cases = []
 
-        for item in cases:
+        for old_case in cases:
 
-            if item[1] != case[1]:
+            if old_case[1] != case[1]:
                 continue
 
-            if item[3] != case[3]:
+            if old_case[3] != case[3]:
                 continue
 
-            if item[0] == self.case_id:
+            if old_case[0] == self.case_id:
                 continue
 
             previous_cases.append(
-                item
+                old_case
             )
 
         if not previous_cases:
@@ -312,8 +339,7 @@ class CaseReviewView(
         embed = discord.Embed(
             title="📚 Previous Cases",
             description=(
-                f"Previous cases for "
-                f"<@{case[3]}>"
+                f"Previous cases for <@{case[3]}>"
             ),
             color=discord.Color.orange()
         )
@@ -321,14 +347,14 @@ class CaseReviewView(
         for old_case in previous_cases[-10:]:
 
             violation = (
-                old_case[6]
+                old_case[7]
                 or "Not identified"
             )
 
             embed.add_field(
                 name=f"Case #{old_case[0]}",
                 value=(
-                    f"**Status:** {old_case[8]}\n"
+                    f"**Status:** {old_case[10]}\n"
                     f"**Violation:** {violation}"
                 ),
                 inline=False
@@ -338,24 +364,6 @@ class CaseReviewView(
             embed=embed,
             ephemeral=True
         )
-
-    # =====================================================
-    # JUMP TO MESSAGE
-    # =====================================================
-
-    @discord.ui.button(
-        label="Jump to Message",
-        style=discord.ButtonStyle.link,
-        emoji="📌",
-        url="https://discord.com"
-    )
-    async def jump_placeholder(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        pass
 
     # =====================================================
     # IDENTIFY VIOLATION
@@ -372,6 +380,28 @@ class CaseReviewView(
         button: discord.ui.Button
     ):
 
+        case = self.cog.get_case(
+            self.case_id
+        )
+
+        if not case:
+
+            await interaction.response.send_message(
+                "❌ Case not found.",
+                ephemeral=True
+            )
+
+            return
+
+        if case[11] != interaction.user.id:
+
+            await interaction.response.send_message(
+                "❌ Claim the case before identifying the violation.",
+                ephemeral=True
+            )
+
+            return
+
         await interaction.response.send_modal(
             ViolationModal(
                 self.cog,
@@ -380,7 +410,7 @@ class CaseReviewView(
         )
 
     # =====================================================
-    # SELECT ACTIONS
+    # CHOOSE ACTIONS
     # =====================================================
 
     @discord.ui.button(
@@ -394,6 +424,28 @@ class CaseReviewView(
         button: discord.ui.Button
     ):
 
+        case = self.cog.get_case(
+            self.case_id
+        )
+
+        if not case:
+
+            await interaction.response.send_message(
+                "❌ Case not found.",
+                ephemeral=True
+            )
+
+            return
+
+        if case[11] != interaction.user.id:
+
+            await interaction.response.send_message(
+                "❌ Claim the case before selecting actions.",
+                ephemeral=True
+            )
+
+            return
+
         await interaction.response.send_message(
             "🛠️ Choose the actions that should be applied:",
             view=ActionView(
@@ -404,7 +456,7 @@ class CaseReviewView(
         )
 
     # =====================================================
-    # CONFIRM
+    # CONFIRM PUNISHMENT
     # =====================================================
 
     @discord.ui.button(
@@ -475,10 +527,24 @@ class ViolationModal(
 
             return
 
+        if case[11] != interaction.user.id:
+
+            await interaction.response.send_message(
+                "❌ You are not the moderator reviewing this case.",
+                ephemeral=True
+            )
+
+            return
+
         db.update(
             "mod_cases",
-            "violation = ?, moderator_reason = ?, "
-            "reviewer_id = ?, status = ?, reviewed_at = ?",
+            """
+            violation = ?,
+            moderator_reason = ?,
+            reviewer_id = ?,
+            status = ?,
+            reviewed_at = ?
+            """,
             "case_id = ?",
             (
                 str(self.violation),
@@ -495,7 +561,10 @@ class ViolationModal(
             case[1],
             interaction.user.id,
             "VIOLATION_IDENTIFIED",
-            f"{self.violation}: {self.reason}"
+            (
+                f"{self.violation}: "
+                f"{self.reason}"
+            )
         )
 
         await interaction.response.send_message(
@@ -530,107 +599,7 @@ class ActionView(
         self.case_id = case_id
 
     # =====================================================
-    # WARN
-    # =====================================================
-
-    @discord.ui.button(
-        label="Warn",
-        style=discord.ButtonStyle.secondary,
-        emoji="⚠️"
-    )
-    async def warn(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await self.select_action(
-            interaction,
-            "WARN"
-        )
-
-    # =====================================================
-    # TIMEOUT
-    # =====================================================
-
-    @discord.ui.button(
-        label="Timeout",
-        style=discord.ButtonStyle.secondary,
-        emoji="🔇"
-    )
-    async def timeout(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await self.select_action(
-            interaction,
-            "TIMEOUT"
-        )
-
-    # =====================================================
-    # KICK
-    # =====================================================
-
-    @discord.ui.button(
-        label="Kick",
-        style=discord.ButtonStyle.secondary,
-        emoji="👢"
-    )
-    async def kick(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await self.select_action(
-            interaction,
-            "KICK"
-        )
-
-    # =====================================================
-    # BAN
-    # =====================================================
-
-    @discord.ui.button(
-        label="Ban",
-        style=discord.ButtonStyle.danger,
-        emoji="🔨"
-    )
-    async def ban(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await self.select_action(
-            interaction,
-            "BAN"
-        )
-
-    # =====================================================
-    # NO ACTION
-    # =====================================================
-
-    @discord.ui.button(
-        label="No Punishment",
-        style=discord.ButtonStyle.success,
-        emoji="➖"
-    )
-    async def none(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await self.select_action(
-            interaction,
-            "NO_ACTION"
-        )
-
-    # =====================================================
-    # SELECT
+    # ACTION HELPER
     # =====================================================
 
     async def select_action(
@@ -652,7 +621,16 @@ class ActionView(
 
             return
 
-        existing = db.exists(
+        if case[11] != interaction.user.id:
+
+            await interaction.response.send_message(
+                "❌ You are not reviewing this case.",
+                ephemeral=True
+            )
+
+            return
+
+        exists = db.exists(
             "case_actions",
             "case_id = ? AND action = ?",
             (
@@ -661,7 +639,7 @@ class ActionView(
             )
         )
 
-        if existing:
+        if exists:
 
             await interaction.response.send_message(
                 f"ℹ️ **{action}** is already selected.",
@@ -705,6 +683,183 @@ class ActionView(
             ephemeral=True
         )
 
+    # =====================================================
+    # WARN
+    # =====================================================
+
+    @discord.ui.button(
+        label="Warn",
+        style=discord.ButtonStyle.secondary,
+        emoji="⚠️"
+    )
+    async def warn(
+        self,
+        interaction,
+        button
+    ):
+
+        await self.select_action(
+            interaction,
+            "WARN"
+        )
+
+    # =====================================================
+    # TIMEOUT
+    # =====================================================
+
+    @discord.ui.button(
+        label="Timeout",
+        style=discord.ButtonStyle.secondary,
+        emoji="🔇"
+    )
+    async def timeout(
+        self,
+        interaction,
+        button
+    ):
+
+        await self.select_action(
+            interaction,
+            "TIMEOUT"
+        )
+
+    # =====================================================
+    # KICK
+    # =====================================================
+
+    @discord.ui.button(
+        label="Kick",
+        style=discord.ButtonStyle.secondary,
+        emoji="👢"
+    )
+    async def kick(
+        self,
+        interaction,
+        button
+    ):
+
+        await self.select_action(
+            interaction,
+            "KICK"
+        )
+
+    # =====================================================
+    # BAN
+    # =====================================================
+
+    @discord.ui.button(
+        label="Ban",
+        style=discord.ButtonStyle.danger,
+        emoji="🔨"
+    )
+    async def ban(
+        self,
+        interaction,
+        button
+    ):
+
+        await self.select_action(
+            interaction,
+            "BAN"
+        )
+
+    # =====================================================
+    # NO ACTION
+    # =====================================================
+
+    @discord.ui.button(
+        label="No Punishment",
+        style=discord.ButtonStyle.success,
+        emoji="➖"
+    )
+    async def none(
+        self,
+        interaction,
+        button
+    ):
+
+        await self.select_action(
+            interaction,
+            "NO_ACTION"
+        )
+
+
+# =========================================================
+# FINAL CONFIRMATION
+# =========================================================
+
+class FinalConfirmationView(
+    discord.ui.View
+):
+
+    def __init__(
+        self,
+        cog,
+        case_id,
+        moderator_id
+    ):
+
+        super().__init__(
+            timeout=60
+        )
+
+        self.cog = cog
+        self.case_id = case_id
+        self.moderator_id = moderator_id
+
+    # =====================================================
+    # CONFIRM
+    # =====================================================
+
+    @discord.ui.button(
+        label="CONFIRM",
+        style=discord.ButtonStyle.danger,
+        emoji="🔨"
+    )
+    async def confirm(
+        self,
+        interaction,
+        button
+    ):
+
+        if interaction.user.id != self.moderator_id:
+
+            await interaction.response.send_message(
+                (
+                    "❌ Only the moderator who started "
+                    "this confirmation can confirm it."
+                ),
+                ephemeral=True
+            )
+
+            return
+
+        await self.cog.execute_case(
+            interaction,
+            self.case_id
+        )
+
+    # =====================================================
+    # CANCEL
+    # =====================================================
+
+    @discord.ui.button(
+        label="Cancel",
+        style=discord.ButtonStyle.secondary,
+        emoji="❌"
+    )
+    async def cancel(
+        self,
+        interaction,
+        button
+    ):
+
+        await interaction.response.edit_message(
+            content="❌ Punishment confirmation cancelled.",
+            embed=None,
+            view=None
+        )
+
 
 # =========================================================
 # REPORTS COG
@@ -722,7 +877,7 @@ class Reports(
         self.bot = bot
 
     # =====================================================
-    # GET PYTHAGORAS
+    # PYTHAGORAS
     # =====================================================
 
     def get_config(
@@ -749,7 +904,7 @@ class Reports(
         )
 
     # =====================================================
-    # HISTORY
+    # ADD HISTORY
     # =====================================================
 
     def add_history(
@@ -814,9 +969,9 @@ class Reports(
 
             return
 
-        # =============================================
+        # =================================================
         # EXACT MESSAGE
-        # =============================================
+        # =================================================
 
         message_id = None
         channel_id = None
@@ -828,9 +983,9 @@ class Reports(
             message_id = reference.message_id
             channel_id = ctx.channel.id
 
-        # =============================================
+        # =================================================
         # CREATE CASE
-        # =============================================
+        # =================================================
 
         db.insert(
             "mod_cases",
@@ -856,17 +1011,27 @@ class Reports(
             )
         )
 
-        case = db.fetchone(
-            "mod_cases",
-            "guild_id = ? AND reporter_id = ? "
-            "AND suspect_id = ? AND report_reason = ?",
-            (
-                ctx.guild.id,
-                ctx.author.id,
-                member.id,
-                reason
-            )
+        # =================================================
+        # FIND NEW CASE
+        # =================================================
+
+        cases = db.fetchall(
+            "mod_cases"
         )
+
+        case = None
+
+        for item in reversed(cases):
+
+            if (
+                item[1] == ctx.guild.id
+                and item[2] == ctx.author.id
+                and item[3] == member.id
+                and item[6] == reason
+            ):
+
+                case = item
+                break
 
         if not case:
 
@@ -886,9 +1051,9 @@ class Reports(
             reason
         )
 
-        # =============================================
-        # GET PYTHAGORAS
-        # =============================================
+        # =================================================
+        # PYTHAGORAS
+        # =================================================
 
         config = self.get_config()
 
@@ -910,9 +1075,14 @@ class Reports(
             "case"
         )
 
-        # =============================================
-        # REPORT EMBED
-        # =============================================
+        destination = (
+            case_channel
+            or report_channel
+        )
+
+        # =================================================
+        # EMBED
+        # =================================================
 
         embed = discord.Embed(
             title=f"📨 New Report • Case #{case_id}",
@@ -932,21 +1102,35 @@ class Reports(
         )
 
         embed.add_field(
+            name="📊 Status",
+            value="OPEN",
+            inline=True
+        )
+
+        embed.add_field(
             name="📌 Reason",
             value=reason[:1024],
             inline=False
         )
 
+        # =================================================
+        # EXACT MESSAGE LINK
+        # =================================================
+
         if message_id:
 
+            jump_url = (
+                f"https://discord.com/channels/"
+                f"{ctx.guild.id}/"
+                f"{channel_id}/"
+                f"{message_id}"
+            )
+
             embed.add_field(
-                name="📍 Evidence",
+                name="📍 Reported Message",
                 value=(
-                    f"[Jump to reported message]"
-                    f"(https://discord.com/channels/"
-                    f"{ctx.guild.id}/"
-                    f"{channel_id}/"
-                    f"{message_id})"
+                    f"[Jump to the exact message]"
+                    f"({jump_url})"
                 ),
                 inline=False
             )
@@ -955,14 +1139,9 @@ class Reports(
             text="Lilith • Awaiting moderator review"
         )
 
-        # =============================================
-        # SEND REPORT
-        # =============================================
-
-        destination = (
-            report_channel
-            or case_channel
-        )
+        # =================================================
+        # SEND
+        # =================================================
 
         if destination:
 
@@ -975,8 +1154,10 @@ class Reports(
             )
 
         await ctx.send(
-            f"✅ Your report has been submitted as "
-            f"**Case #{case_id}**."
+            (
+                f"✅ Your report has been submitted "
+                f"as **Case #{case_id}**."
+            )
         )
 
     # =====================================================
@@ -1026,14 +1207,26 @@ class Reports(
 
         guild = target.guild
 
-        reporter = safe_user(
+        reporter = get_member(
             guild,
             case[2]
         )
 
-        suspect = safe_user(
+        suspect = get_member(
             guild,
             case[3]
+        )
+
+        reporter_text = (
+            reporter.mention
+            if reporter
+            else f"<@{case[2]}>"
+        )
+
+        suspect_text = (
+            suspect.mention
+            if suspect
+            else f"<@{case[3]}>"
         )
 
         embed = discord.Embed(
@@ -1043,19 +1236,19 @@ class Reports(
 
         embed.add_field(
             name="👤 Suspect",
-            value=str(suspect),
+            value=suspect_text,
             inline=True
         )
 
         embed.add_field(
             name="📝 Reporter",
-            value=str(reporter),
+            value=reporter_text,
             inline=True
         )
 
         embed.add_field(
             name="📊 Status",
-            value=case[8],
+            value=case[10],
             inline=True
         )
 
@@ -1077,19 +1270,19 @@ class Reports(
             inline=False
         )
 
-        if case[10]:
+        if case[8]:
 
             embed.add_field(
                 name="🛡️ Moderator Reason",
-                value=case[10][:1024],
+                value=case[8][:1024],
                 inline=False
             )
 
-        # =============================================
-        # EVIDENCE
-        # =============================================
+        # =================================================
+        # EXACT MESSAGE
+        # =================================================
 
-        if case[5] and case[4]:
+        if case[4] and case[5]:
 
             jump_url = (
                 f"https://discord.com/channels/"
@@ -1099,12 +1292,17 @@ class Reports(
             )
 
             embed.add_field(
-                name="📍 Exact Message",
+                name="📍 Evidence",
                 value=(
-                    f"[Jump to the message]({jump_url})"
+                    f"[Jump to the exact reported message]"
+                    f"({jump_url})"
                 ),
                 inline=False
             )
+
+        embed.set_footer(
+            text="Lilith • Case Review"
+        )
 
         await target.send(
             embed=embed,
@@ -1137,37 +1335,38 @@ class Reports(
 
             return
 
-        # =============================================
-        # MUST IDENTIFY VIOLATION
-        # =============================================
+        if case[10] == "RESOLVED":
+
+            await interaction.response.send_message(
+                "❌ This case has already been resolved.",
+                ephemeral=True
+            )
+
+            return
 
         if not case[7]:
 
             await interaction.response.send_message(
-                "❌ Identify the violation before confirming.",
+                (
+                    "❌ Identify the violation "
+                    "before confirming."
+                ),
                 ephemeral=True
             )
 
             return
 
-        # =============================================
-        # MUST BE REVIEWER
-        # =============================================
-
-        reviewer_id = case[9]
-
-        if reviewer_id != interaction.user.id:
+        if case[11] != interaction.user.id:
 
             await interaction.response.send_message(
-                "❌ You must claim this case before confirming it.",
+                (
+                    "❌ You must claim this case "
+                    "before confirming it."
+                ),
                 ephemeral=True
             )
 
             return
-
-        # =============================================
-        # GET ACTIONS
-        # =============================================
 
         actions = db.fetchall(
             "case_actions"
@@ -1177,7 +1376,10 @@ class Reports(
 
         for action in actions:
 
-            if action[1] == case_id:
+            if (
+                action[1] == case_id
+                and action[5] == 0
+            ):
 
                 selected.append(
                     action
@@ -1192,20 +1394,19 @@ class Reports(
 
             return
 
-        action_names = [
-            action[3]
-            for action in selected
-        ]
+        action_names = []
 
-        # =============================================
-        # CONFIRMATION MESSAGE
-        # =============================================
+        for action in selected:
+
+            action_names.append(
+                action[3]
+            )
 
         embed = discord.Embed(
             title=f"⚠️ Confirm Case #{case_id}",
             description=(
-                "You are about to confirm the following "
-                "moderation actions:"
+                "You are about to confirm "
+                "these moderation actions."
             ),
             color=discord.Color.red()
         )
@@ -1263,18 +1464,45 @@ class Reports(
 
             return
 
+        if case[11] != interaction.user.id:
+
+            await interaction.response.edit_message(
+                content="❌ You are not the reviewer of this case.",
+                embed=None,
+                view=None
+            )
+
+            return
+
         actions = db.fetchall(
             "case_actions"
         )
 
-        selected = [
-            action
-            for action in actions
-            if action[1] == case_id
-            and not action[5]
-        ]
+        selected = []
 
-        member = interaction.guild.get_member(
+        for action in actions:
+
+            if (
+                action[1] == case_id
+                and action[5] == 0
+            ):
+
+                selected.append(
+                    action
+                )
+
+        if not selected:
+
+            await interaction.response.edit_message(
+                content="❌ There are no pending actions.",
+                embed=None,
+                view=None
+            )
+
+            return
+
+        member = get_member(
+            interaction.guild,
             case[3]
         )
 
@@ -1282,6 +1510,7 @@ class Reports(
 
         for action in selected:
 
+            action_id = action[0]
             action_name = action[3]
 
             try:
@@ -1311,15 +1540,16 @@ class Reports(
                     else:
 
                         await member.timeout(
-                            discord.utils.utcnow()
-                            + discord.utils.timedelta(
+                            timedelta(
                                 minutes=10
                             ),
-                            reason=f"Case #{case_id}"
+                            reason=(
+                                f"Lilith Case #{case_id}"
+                            )
                         )
 
                         results.append(
-                            "🔇 Timeout applied"
+                            "🔇 10-minute timeout applied"
                         )
 
                 # =====================================
@@ -1337,7 +1567,9 @@ class Reports(
                     else:
 
                         await member.kick(
-                            reason=f"Case #{case_id}"
+                            reason=(
+                                f"Lilith Case #{case_id}"
+                            )
                         )
 
                         results.append(
@@ -1359,7 +1591,9 @@ class Reports(
                     else:
 
                         await member.ban(
-                            reason=f"Case #{case_id}"
+                            reason=(
+                                f"Lilith Case #{case_id}"
+                            )
                         )
 
                         results.append(
@@ -1376,28 +1610,38 @@ class Reports(
                         "➖ No punishment"
                     )
 
+                # =====================================
+                # MARK EXECUTED
+                # =====================================
+
                 db.update(
                     "case_actions",
-                    "confirmed = ?, executed = ?, executed_at = ?",
+                    """
+                    confirmed = ?,
+                    executed = ?,
+                    executed_at = ?
+                    """,
                     "id = ?",
                     (
                         1,
                         1,
                         now(),
-                        action[0]
+                        action_id
                     )
                 )
 
             except Exception as error:
 
                 results.append(
-                    f"❌ {action_name} failed: "
-                    f"{type(error).__name__}"
+                    (
+                        f"❌ {action_name} failed: "
+                        f"{type(error).__name__}"
+                    )
                 )
 
-        # =============================================
-        # RESOLVE CASE
-        # =============================================
+        # =================================================
+        # RESOLVE
+        # =================================================
 
         db.update(
             "mod_cases",
@@ -1418,9 +1662,9 @@ class Reports(
             ", ".join(results)
         )
 
-        # =============================================
-        # LOG THROUGH PYTHAGORAS
-        # =============================================
+        # =================================================
+        # PYTHAGORAS LOG
+        # =================================================
 
         config = self.get_config()
 
@@ -1472,76 +1716,8 @@ class Reports(
         await interaction.response.edit_message(
             content=(
                 f"✅ **Case #{case_id} resolved.**\n\n"
-                + "\n".join(
-                    results
-                )
+                + "\n".join(results)
             ),
-            embed=None,
-            view=None
-        )
-
-
-# =========================================================
-# FINAL CONFIRMATION
-# =========================================================
-
-class FinalConfirmationView(
-    discord.ui.View
-):
-
-    def __init__(
-        self,
-        cog,
-        case_id,
-        moderator_id
-    ):
-
-        super().__init__(
-            timeout=60
-        )
-
-        self.cog = cog
-        self.case_id = case_id
-        self.moderator_id = moderator_id
-
-    @discord.ui.button(
-        label="CONFIRM",
-        style=discord.ButtonStyle.danger,
-        emoji="🔨"
-    )
-    async def confirm(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        if interaction.user.id != self.moderator_id:
-
-            await interaction.response.send_message(
-                "❌ Only the moderator who started this confirmation can confirm it.",
-                ephemeral=True
-            )
-
-            return
-
-        await self.cog.execute_case(
-            interaction,
-            self.case_id
-        )
-
-    @discord.ui.button(
-        label="Cancel",
-        style=discord.ButtonStyle.secondary,
-        emoji="❌"
-    )
-    async def cancel(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-
-        await interaction.response.edit_message(
-            content="❌ Punishment confirmation cancelled.",
             embed=None,
             view=None
         )
@@ -1557,4 +1733,4 @@ async def setup(
 
     await bot.add_cog(
         Reports(bot)
-    )
+)

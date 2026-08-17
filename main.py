@@ -3,141 +3,203 @@ import asyncio
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-import mycord
 
 
 load_dotenv()
 
 
 # =========================================
-# SHAKA
+# BOT CONFIGURATION
 # =========================================
 
-shaka_intents = discord.Intents.default()
-shaka_intents.message_content = True
-shaka_intents.members = True
+BOT_CONFIG = {
+    "Lilith": {
+        "prefix": "Lilith ",
+        "folder": "lilith",
+        "token": "LILITH_TOKEN"
+    },
 
-shaka = commands.Bot(
-    command_prefix="Shaka ",
-    help_command=None,
-    intents=shaka_intents
-)
+    "Shaka": {
+        "prefix": "Shaka ",
+        "folder": "shaka",
+        "token": "SHAKA_TOKEN"
+    },
+
+    "Pythagoras": {
+        "prefix": "Pythagoras ",
+        "folder": "pythagoras",
+        "token": "PYTHAGORAS_TOKEN"
+    },
+
+    "York": {
+        "prefix": "York ",
+        "folder": "york",
+        "token": "YORK_TOKEN"
+    },
+
+    "Edison": {
+        "prefix": "Edison ",
+        "folder": "edison",
+        "token": "EDISON_TOKEN"
+    },
+
+    "Atlas": {
+        "prefix": "Atlas ",
+        "folder": "atlas",
+        "token": "ATLAS_TOKEN"
+    }
+}
 
 
 # =========================================
-# PYTHAGORAS
+# CREATE BOTS
 # =========================================
 
-pythagoras_intents = discord.Intents.default()
-pythagoras_intents.message_content = True
-pythagoras_intents.members = True
+bots = {}
 
-pythagoras = commands.Bot(
-    command_prefix="Pythagoras ",
-    help_command=None,
-    intents=pythagoras_intents
-)
+
+for name, config in BOT_CONFIG.items():
+
+    intents = discord.Intents.default()
+
+    intents.message_content = True
+    intents.members = True
+
+    bot = commands.Bot(
+        command_prefix=config["prefix"],
+        help_command=None,
+        intents=intents
+    )
+
+    # Store the satellite name.
+    # The hierarchy system can use this
+    # to identify which bot a command belongs to.
+    bot.satellite_name = name
+
+    bots[name] = bot
 
 
 # =========================================
-# LOAD SHAKA COGS
+# LOAD COGS
 # =========================================
 
-async def load_shaka_cogs():
+async def load_cogs(
+    bot,
+    name,
+    folder
+):
 
-    print("📂 Shaka: Scanning for cogs...")
+    print(
+        f"📂 {name}: Scanning for cogs..."
+    )
 
-    folder = "./shaka/cogs"
+    cog_folder = f"./{folder}/cogs"
 
-    if not os.path.exists(folder):
-        print("⚠️ Shaka: No 'cogs' folder found.")
+    if not os.path.exists(cog_folder):
+
+        print(
+            f"⚠️ {name}: No 'cogs' folder found."
+        )
+
         return
 
-    for filename in os.listdir(folder):
+    for filename in os.listdir(cog_folder):
 
-        if filename.endswith(".py") and not filename.startswith("__"):
+        if (
+            filename.endswith(".py")
+            and not filename.startswith("__")
+        ):
+
+            extension = (
+                f"{folder}.cogs.{filename[:-3]}"
+            )
 
             try:
 
-                await shaka.load_extension(
-                    f"shaka.cogs.{filename[:-3]}"
+                await bot.load_extension(
+                    extension
                 )
 
                 print(
-                    f"  └─ Shaka loaded cog: {filename}"
+                    f"  └─ {name} loaded cog: "
+                    f"{filename}"
                 )
 
             except Exception as e:
 
                 print(
-                    f"  ❌ Shaka failed to load "
+                    f"  ❌ {name} failed to load "
                     f"{filename}: {e}"
                 )
 
 
 # =========================================
-# LOAD PYTHAGORAS COGS
+# READY EVENTS
 # =========================================
 
-async def load_pythagoras_cogs():
+def setup_ready_event(
+    bot,
+    name
+):
 
-    print("📂 Pythagoras: Scanning for cogs...")
+    @bot.event
+    async def on_ready():
 
-    folder = "./pythagoras/cogs"
+        print(
+            f"🤖 {name} logged in as "
+            f"{bot.user}"
+        )
 
-    if not os.path.exists(folder):
-        print("⚠️ Pythagoras: No 'cogs' folder found.")
+        print(
+            f"⚡ {name} is online and listening."
+        )
+
+
+# =========================================
+# START ONE BOT
+# =========================================
+
+async def start_bot(
+    name,
+    bot,
+    config
+):
+
+    token = os.getenv(
+        config["token"]
+    )
+
+    if not token:
+
+        print(
+            f"❌ {name}: "
+            f"'{config['token']}' is missing!"
+        )
+
         return
 
-    for filename in os.listdir(folder):
-
-        if filename.endswith(".py") and not filename.startswith("__"):
-
-            try:
-
-                await pythagoras.load_extension(
-                    f"pythagoras.cogs.{filename[:-3]}"
-                )
-
-                print(
-                    f"  └─ Pythagoras loaded cog: {filename}"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"  ❌ Pythagoras failed to load "
-                    f"{filename}: {e}"
-                )
-
-
-# =========================================
-# SHAKA READY
-# =========================================
-
-@shaka.event
-async def on_ready():
-
-    print(
-        f"🤖 Shaka logged in as {shaka.user.name}"
+    await load_cogs(
+        bot,
+        name,
+        config["folder"]
     )
 
-    print("⚡ Shaka is online and listening.")
-
-
-# =========================================
-# PYTHAGORAS READY
-# =========================================
-
-@pythagoras.event
-async def on_ready():
-
-    print(
-        f"🤖 Pythagoras logged in as "
-        f"{pythagoras.user.name}"
+    setup_ready_event(
+        bot,
+        name
     )
 
-    print("⚡ Pythagoras is online and listening.")
+    try:
+
+        await bot.start(
+            token
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ {name} stopped: {e}"
+        )
 
 
 # =========================================
@@ -146,24 +208,39 @@ async def on_ready():
 
 async def main():
 
-    await load_shaka_cogs()
-    await load_pythagoras_cogs()
+    print(
+        "🚀 Starting Vegapunk satellite system..."
+    )
 
-    shaka_token = os.getenv("SHAKA_TOKEN")
-    pythagoras_token = os.getenv("PYTHAGORAS_TOKEN")
+    tasks = []
 
-    if not shaka_token:
-        print("❌ 'SHAKA_TOKEN' is missing!")
-        return
+    for name, config in BOT_CONFIG.items():
 
-    if not pythagoras_token:
-        print("❌ 'PYTHAGORAS_TOKEN' is missing!")
-        return
+        tasks.append(
+            start_bot(
+                name,
+                bots[name],
+                config
+            )
+        )
 
     await asyncio.gather(
-        shaka.start(shaka_token),
-        pythagoras.start(pythagoras_token)
+        *tasks
     )
 
 
-asyncio.run(main())
+# =========================================
+# RUN
+# =========================================
+
+try:
+
+    asyncio.run(
+        main()
+    )
+
+except KeyboardInterrupt:
+
+    print(
+        "\n🛑 All satellites stopped."
+    )

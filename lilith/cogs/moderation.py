@@ -37,3 +37,17 @@ db.create_table(
     created_at TEXT NOT NULL
     """
 )
+db.create_table(
+    "case_actions",
+    """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id INTEGER NOT NULL,
+    guild_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    selected_by INTEGER NOT NULL,
+    confirmed INTEGER NOT NULL DEFAULT 0,
+    executed INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    executed_at TEXT
+    """
+)

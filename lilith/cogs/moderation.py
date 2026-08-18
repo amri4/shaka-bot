@@ -95,7 +95,7 @@ class Reports(commands.Cog):
             (
                 ctx.guild.id,
                 ctx.author.id,
-                reporter_message.id
+                reported_message.id
             )
         )
         embed = discord.Embed(

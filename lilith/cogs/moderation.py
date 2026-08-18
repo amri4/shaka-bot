@@ -54,3 +54,15 @@ db.create_table(
     executed_at TEXT
     """
 )
+
+class Reports(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @command("🔴 Reports", description="Report a message to staff", usage="<reply to message> <reason>")
+    async def report(self, ctx, *, reason: str):
+        if not ctx.message.reference:
+            await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")
+            return
+        reported_message = ctx.channel.fetch_message(ctx.message.reference.message_id)
+        await ctx.send(f"✅️ Report received for {reported_message.author.mention}")

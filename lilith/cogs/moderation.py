@@ -89,7 +89,41 @@ class Reports(commands.Cog):
                 reason
             )
         )
-        await ctx.send(f"✅️ Report received for {reported_message.author.mention}")
+        case = db.fetchone(
+            "cases",
+            "guild_id = ? AND reporter_id = ? AND message_id = ?",
+            (
+                ctx.guild.id,
+                ctx.author.id,
+                reporter_message.id
+            )
+        )
+        embed = discord.Embed(
+            title="📨 Report Received",
+            description=("Your report has been successfully submitted "
+                         "for mods review"
+                        ),
+            color=discord.Color.blue()
+        )
+        embed.add_field(
+            name="🆔️ Case ID",
+            value=f"`#{case[0]}`",
+            inline=True
+        )
+        embed.add_field(
+            name="👤 Reported User",
+            value=reported_message.author.mention,
+            inline=True
+        )
+        embed.add_field(
+            name="📌 Status",
+            value="`OPEN`",
+            inline=True
+        )
+        embed.set_footer(
+            text="Lilith • Moderation System"
+        )
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Reports(bot))

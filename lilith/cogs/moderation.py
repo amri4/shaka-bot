@@ -90,3 +90,6 @@ class Reports(commands.Cog):
             )
         )
         await ctx.send(f"✅️ Report received for {reported_message.author.mention}")
+
+async def setup(bot):
+    await bot.add_cog(Reports(bot))

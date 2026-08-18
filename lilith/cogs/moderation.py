@@ -64,5 +64,5 @@ class Reports(commands.Cog):
         if not ctx.message.reference:
             await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")
             return
-        reported_message = ctx.channel.fetch_message(ctx.message.reference.message_id)
+        reported_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
         await ctx.send(f"✅️ Report received for {reported_message.author.mention}")

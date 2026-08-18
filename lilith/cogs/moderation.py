@@ -16,7 +16,9 @@ db.create_table(
     created_at TEXT NOT NULL,
     channel_id INTEGER,
     message_id INTEGER,
-    report_reason TEXT
+    report_reason TEXT,
+    violation TEXT,
+    moderator_reason TEXT
     """
 )
 CASE_STATUSES = {

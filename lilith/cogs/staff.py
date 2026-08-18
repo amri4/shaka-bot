@@ -84,8 +84,7 @@ class StaffSystem(commands.Cog):
 
     @command(
         "Staff",
-        description="Show the staff hierarchy.",
-        usage="Lilith hierarchy"
+        description="Show the staff hierarchy."
     )
     async def hierarchy(
         self,
@@ -120,7 +119,7 @@ class StaffSystem(commands.Cog):
     @command(
         "Staff",
         description="Show a member's staff rank.",
-        usage="Lilith rank <member>"
+        usage="<member>"
     )
     async def rank(
         self,
@@ -155,7 +154,7 @@ class StaffSystem(commands.Cog):
     @command(
         "Staff",
         description="Assign a staff rank.",
-        usage="Lilith setrank <member> <rank>"
+        usage="<member> <rank>"
     )
     async def setrank(
         self,

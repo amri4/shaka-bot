@@ -23,7 +23,8 @@ db.create_table(
     welcome_role_id INTEGER,
     member_role_id,
 
-    reaction_role_channel_id
+    reaction_role_channel_id,
+    report_channel_id INTEGER
     """
 )
 
@@ -527,6 +528,38 @@ class Config(commands.Cog):
             "reaction_role_channel_id",
             channel,
             "🎭 Reaction-role channel set to {channel.mention}."
+        )
+
+    @command(
+        "⚙️ Configuration",
+        "Set the channel where reports are sent to mods"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def setreportchannel(self, ctx, channel: discord.TextChannel):
+        await self.set_channel(
+            ctx,
+            "report_channel_id",
+            channel,
+            "📨 Reports channel set to {channel.mention}."
+        )
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured reports channel"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetreportchannel(
+        self,
+        ctx
+    ):
+        await self.unset_channel(
+            ctx,
+            "report_channel_id",
+            "✅️ Reports channel removed."
         )
 
     # =====================================

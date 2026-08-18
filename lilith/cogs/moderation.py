@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import mycord
 from utils.command import command
+from datetime import datetime
 
 db = mycord.PunksDB()
 
@@ -65,4 +66,27 @@ class Reports(commands.Cog):
             await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")
             return
         reported_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        db.insert(
+            "cases",
+            """
+            guild_id,
+            reporter_id,
+            suspect_id,
+            status,
+            created_at,
+            channel_id,
+            message_id,
+            report_reason
+            """,
+            (
+                ctx.guild.id,
+                ctx.author.id,
+                reported_message.author.id,
+                "OPEN",
+                datetime.utcnow().isoformat(),
+                reported_message.channel.id,
+                reported_message.id,
+                reason
+            )
+        )
         await ctx.send(f"✅️ Report received for {reported_message.author.mention}")

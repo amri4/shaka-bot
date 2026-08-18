@@ -23,14 +23,7 @@ db.create_table(
     welcome_role_id INTEGER,
     member_role_id,
 
-    reaction_role_channel_id,
-
-    report_channel_id,
-    case_channel_id,
-    mod_log_channel_id,
-    punishment_log_channel_id,
-    promotion_log_channel_id,
-    mod_activity_channel_id
+    reaction_role_channel_id
     """
 )
 
@@ -40,13 +33,7 @@ db.create_table(
 # =========================================
 
 columns = {
-    "reaction_role_channel_id": "INTEGER",
-    "report_channel_id": "INTEGER",
-    "case_channel_id": "INTEGER",
-    "mod_log_channel_id": "INTEGER",
-    "punishment_log_channel_id": "INTEGER",
-    "promotion_log_channel_id": "INTEGER",
-    "mod_activity_channel_id": "INTEGER"
+    "reaction_role_channel_id": "INTEGER"
 }
 
 
@@ -99,22 +86,10 @@ class Config(commands.Cog):
                 goodbye_channel_id,
                 welcome_role_id,
                 member_role_id,
-                reaction_role_channel_id,
-                report_channel_id,
-                case_channel_id,
-                mod_log_channel_id,
-                punishment_log_channel_id,
-                promotion_log_channel_id,
-                mod_activity_channel_id
+                reaction_role_channel_id
                 """,
                 (
                     guild_id,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
                     None,
                     None,
                     None,
@@ -165,29 +140,7 @@ class Config(commands.Cog):
 
             "goodbye": 2,
 
-            "reaction_role": 5,
-
-            "reports": 6,
-
-            "report": 6,
-
-            "cases": 7,
-
-            "case": 7,
-
-            "mod_log": 8,
-
-            "punishment_log": 9,
-
-            "punishments": 9,
-
-            "promotion_log": 10,
-
-            "promotions": 10,
-
-            "mod_activity": 11,
-
-            "activity": 11
+            "reaction_role": 5
         }
 
         index = channel_map.get(
@@ -599,248 +552,6 @@ class Config(commands.Cog):
         )
 
     # =====================================
-    # LILITH CHANNELS
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the channel where member reports are sent"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setreportchannel(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "report_channel_id",
-            channel,
-            "📨 Report channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the report channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetreportchannel(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "report_channel_id",
-            "✅ Report channel removed."
-        )
-
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the channel where cases are reviewed"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setcasechannel(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "case_channel_id",
-            channel,
-            "⚖️ Case channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the case channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetcasechannel(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "case_channel_id",
-            "✅ Case channel removed."
-        )
-
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the moderator log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setmodlogchannel(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "mod_log_channel_id",
-            channel,
-            "📋 Moderator log channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the moderator log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetmodlogchannel(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "mod_log_channel_id",
-            "✅ Moderator log channel removed."
-        )
-
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the punishment log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setpunishmentlog(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "punishment_log_channel_id",
-            channel,
-            "⚔️ Punishment log channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the punishment log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetpunishmentlog(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "punishment_log_channel_id",
-            "✅ Punishment log channel removed."
-        )
-
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the moderator promotion log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setpromotionlog(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "promotion_log_channel_id",
-            channel,
-            "🏆 Promotion log channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the promotion log channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetpromotionlog(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "promotion_log_channel_id",
-            "✅ Promotion log channel removed."
-        )
-
-    # =====================================
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Set the moderator activity channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setmodactivity(
-        self,
-        ctx,
-        channel: discord.TextChannel
-    ):
-
-        await self.set_channel(
-            ctx,
-            "mod_activity_channel_id",
-            channel,
-            "📊 Moderator activity channel set to {channel.mention}."
-        )
-
-    @command(
-        "🛡️ Lilith Configuration",
-        "Remove the moderator activity channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetmodactivity(
-        self,
-        ctx
-    ):
-
-        await self.unset_channel(
-            ctx,
-            "mod_activity_channel_id",
-            "✅ Moderator activity channel removed."
-        )
-
-    # =====================================
     # SHOW CONFIGURATION
     # =====================================
 
@@ -871,13 +582,7 @@ class Config(commands.Cog):
         channel_names = {
             "👋 Welcome Channel": 1,
             "🚪 Goodbye Channel": 2,
-            "🎭 Reaction Role Channel": 5,
-            "📨 Report Channel": 6,
-            "⚖️ Case Channel": 7,
-            "📋 Mod Log": 8,
-            "⚔️ Punishment Log": 9,
-            "🏆 Promotion Log": 10,
-            "📊 Mod Activity": 11
+            "🎭 Reaction Role Channel": 5
         }
 
         role_names = {

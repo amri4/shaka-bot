@@ -18,7 +18,8 @@ db.create_table(
     message_id INTEGER,
     report_reason TEXT,
     violation TEXT,
-    moderator_reason TEXT
+    moderator_reason TEXT,
+    reviewer_id INTEGER
     """
 )
 CASE_STATUSES = {

@@ -78,6 +78,7 @@ class Reports(commands.Cog):
             await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")
             return
         reported_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        created_at = datetime.utcnow()
         report_channel_id = self.get_report_channel_id(ctx.guild.id)
 
         if not report_channel_id:
@@ -112,7 +113,7 @@ class Reports(commands.Cog):
                 ctx.author.id,
                 reported_message.author.id,
                 "OPEN",
-                datetime.utcnow().isoformat(),
+                created_at.isoformat(),
                 reported_message.channel.id,
                 reported_message.id,
                 reason
@@ -185,7 +186,7 @@ class Reports(commands.Cog):
         )
         mod_embed.add_field(
             name="💬 Reported Message",
-            value=reported_message,
+            value=reported_message.content,
             inline=True
         )
         mod_embed.add_field(
@@ -193,7 +194,6 @@ class Reports(commands.Cog):
             value=reported_message.channel,
             inline=True
         )
-        created_at = datetime.utcnow()
         mod_embed.add_field(
             name="🕒 Reported",
             value=f"<t:{int(created_at.timestamp())}:R>",

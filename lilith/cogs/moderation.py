@@ -60,12 +60,41 @@ class Reports(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def get_report_channel_id(self, guild_id):
+        data = db.fetchone(
+            "server_config",
+            "guild_id = ?",
+            (guild_id,)
+        )
+
+        if not data:
+            return None
+
+        return data[6]
+    
     @command("🔴 Reports", description="Report a message to staff", usage="<reply to message> <reason>")
     async def report(self, ctx, *, reason: str):
         if not ctx.message.reference:
             await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")
             return
         reported_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        report_channel_id = self.get_report_channel_id(ctx.guild.id)
+
+            if not report_channel_id:
+                await ctx.send(
+                    "❌️ The report channel has not been configured."
+                )
+                return
+
+            report_channel = ctx.guild.get_channel(
+                report_channel_id
+            )
+
+            if not report_channel:
+                await ctx.send(
+                    "❌️ The configured report channel no longer exists."
+                )
+                return
         db.insert(
             "cases",
             """

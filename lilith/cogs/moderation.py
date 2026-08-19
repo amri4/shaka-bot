@@ -154,5 +154,52 @@ class Reports(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+        mod_embed = discord.Embed(
+            title="🚨 New Report",
+            color=discord.Color.red()
+        )
+        mod_embed.add_field(
+            name="🆔️ Case ID",
+            value=f"`#{case[0]}`",
+            inline=True
+        )
+        mod_embed.add_field(
+            name="👤 Reporter",
+            value=ctx.author.mention,
+            inline=True
+        )
+        mod_embed.add_field(
+            name="🎯 Reported User",
+            value=reported_message.author.mention,
+            inline=True
+        )
+        mod_embed.add_field(
+            name="📝 Reason",
+            value=reason,
+            inline=True
+        )
+        mod_embed.add_field(
+            name="📌 Status",
+            value="`OPEN`",
+            inline=True
+        )
+        mod_embed.add_field(
+            name="💬 Reported Message",
+            value=reported_message,
+            inline=True
+        )
+        mod_embed.add_field(
+            name="📍 Channel",
+            value=reported_message.channel,
+            inline=True
+        )
+        created_at = datetime.utcnow()
+        mod_embed.add_field(
+            name="🕒 Reported",
+            value=f"<t:{int(created_at.timestamp())}:R>",
+            inline=True
+        )
+        await report_channel.send(embed=mod_embed)
+        
 async def setup(bot):
     await bot.add_cog(Reports(bot))

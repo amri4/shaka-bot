@@ -80,21 +80,21 @@ class Reports(commands.Cog):
         reported_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
         report_channel_id = self.get_report_channel_id(ctx.guild.id)
 
-            if not report_channel_id:
-                await ctx.send(
-                    "❌️ The report channel has not been configured."
-                )
-                return
+        if not report_channel_id:
+            await ctx.send(
+                "❌️ The report channel has not been configured."
+            )
+            return
 
-            report_channel = ctx.guild.get_channel(
+        report_channel = ctx.guild.get_channel(
                 report_channel_id
             )
 
-            if not report_channel:
-                await ctx.send(
-                    "❌️ The configured report channel no longer exists."
-                )
-                return
+        if not report_channel:
+            await ctx.send(
+                "❌️ The configured report channel no longer exists."
+            )
+            return
         db.insert(
             "cases",
             """

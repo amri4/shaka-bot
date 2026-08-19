@@ -23,7 +23,7 @@ db.create_table(
     welcome_role_id INTEGER,
     member_role_id,
 
-    reaction_role_channel_id,
+    reaction_role_channel_id INTEGER,
     report_channel_id INTEGER
     """
 )
@@ -34,7 +34,8 @@ db.create_table(
 # =========================================
 
 columns = {
-    "reaction_role_channel_id": "INTEGER"
+    "reaction_role_channel_id": "INTEGER",
+    "report_channel_id": "INTEGER"
 }
 
 
@@ -64,6 +65,7 @@ class Config(commands.Cog):
 
         self.bot = bot
 
+
     # =====================================
     # ENSURE CONFIG
     # =====================================
@@ -87,7 +89,8 @@ class Config(commands.Cog):
                 goodbye_channel_id,
                 welcome_role_id,
                 member_role_id,
-                reaction_role_channel_id
+                reaction_role_channel_id,
+                report_channel_id
                 """,
                 (
                     guild_id,
@@ -95,9 +98,11 @@ class Config(commands.Cog):
                     None,
                     None,
                     None,
+                    None,
                     None
                 )
             )
+
 
     # =====================================
     # GET CONFIG
@@ -117,6 +122,7 @@ class Config(commands.Cog):
             "guild_id = ?",
             (guild_id,)
         )
+
 
     # =====================================
     # GET CONFIGURED CHANNEL
@@ -138,10 +144,10 @@ class Config(commands.Cog):
         channel_map = {
 
             "welcome": 1,
-
             "goodbye": 2,
-
-            "reaction_role": 5
+            "reaction_role": 5,
+            "reports": 6,
+            "report": 6
         }
 
         index = channel_map.get(
@@ -159,6 +165,7 @@ class Config(commands.Cog):
         return guild.get_channel(
             channel_id
         )
+
 
     # =====================================
     # GET CONFIGURED ROLE
@@ -180,7 +187,6 @@ class Config(commands.Cog):
         role_map = {
 
             "welcome": 3,
-
             "member": 4
         }
 
@@ -199,6 +205,7 @@ class Config(commands.Cog):
         return guild.get_role(
             role_id
         )
+
 
     # =====================================
     # SET CHANNEL HELPER
@@ -232,6 +239,7 @@ class Config(commands.Cog):
             )
         )
 
+
     # =====================================
     # REMOVE CHANNEL HELPER
     # =====================================
@@ -260,6 +268,7 @@ class Config(commands.Cog):
         await ctx.send(
             message
         )
+
 
     # =====================================
     # SET ROLE HELPER
@@ -293,6 +302,7 @@ class Config(commands.Cog):
             )
         )
 
+
     # =====================================
     # REMOVE ROLE HELPER
     # =====================================
@@ -311,16 +321,13 @@ class Config(commands.Cog):
         db.update(
             "server_config",
             f"{column} = ?",
-            "guild_id = ?",
-            (
-                None,
-                ctx.guild.id
-            )
+            "guild_id = ?"
         )
 
         await ctx.send(
             message
         )
+
 
     # =====================================
     # WELCOME CHANNEL
@@ -346,9 +353,6 @@ class Config(commands.Cog):
             "👋 Welcome channel set to {channel.mention}."
         )
 
-    # =====================================
-    # REMOVE WELCOME
-    # =====================================
 
     @command(
         "⚙️ Configuration",
@@ -367,6 +371,7 @@ class Config(commands.Cog):
             "welcome_channel_id",
             "✅ Welcome channel removed."
         )
+
 
     # =====================================
     # GOODBYE CHANNEL
@@ -392,9 +397,6 @@ class Config(commands.Cog):
             "🚪 Goodbye channel set to {channel.mention}."
         )
 
-    # =====================================
-    # REMOVE GOODBYE
-    # =====================================
 
     @command(
         "⚙️ Configuration",
@@ -413,6 +415,7 @@ class Config(commands.Cog):
             "goodbye_channel_id",
             "✅ Goodbye channel removed."
         )
+
 
     # =====================================
     # WELCOME ROLE
@@ -438,9 +441,6 @@ class Config(commands.Cog):
             "👋 Welcome role set to {role.mention}."
         )
 
-    # =====================================
-    # REMOVE WELCOME ROLE
-    # =====================================
 
     @command(
         "⚙️ Configuration",
@@ -459,6 +459,7 @@ class Config(commands.Cog):
             "welcome_role_id",
             "✅ Welcome role removed."
         )
+
 
     # =====================================
     # MEMBER ROLE
@@ -484,9 +485,6 @@ class Config(commands.Cog):
             "👤 Member role set to {role.mention}."
         )
 
-    # =====================================
-    # REMOVE MEMBER ROLE
-    # =====================================
 
     @command(
         "⚙️ Configuration",
@@ -505,6 +503,7 @@ class Config(commands.Cog):
             "member_role_id",
             "✅ Member role removed."
         )
+
 
     # =====================================
     # REACTION ROLE CHANNEL
@@ -530,41 +529,6 @@ class Config(commands.Cog):
             "🎭 Reaction-role channel set to {channel.mention}."
         )
 
-    @command(
-        "⚙️ Configuration",
-        "Set the channel where reports are sent to mods"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def setreportchannel(self, ctx, channel: discord.TextChannel):
-        await self.set_channel(
-            ctx,
-            "report_channel_id",
-            channel,
-            "📨 Reports channel set to {channel.mention}."
-        )
-
-    @command(
-        "⚙️ Configuration",
-        "Remove the configured reports channel"
-    )
-    @commands.has_guild_permissions(
-        manage_guild=True
-    )
-    async def unsetreportchannel(
-        self,
-        ctx
-    ):
-        await self.unset_channel(
-            ctx,
-            "report_channel_id",
-            "✅️ Reports channel removed."
-        )
-
-    # =====================================
-    # REMOVE REACTION ROLE CHANNEL
-    # =====================================
 
     @command(
         "⚙️ Configuration",
@@ -583,6 +547,51 @@ class Config(commands.Cog):
             "reaction_role_channel_id",
             "✅ Reaction-role channel removed."
         )
+
+
+    # =====================================
+    # REPORT CHANNEL
+    # =====================================
+
+    @command(
+        "⚙️ Configuration",
+        "Set the channel where reports are sent to mods"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def setreportchannel(
+        self,
+        ctx,
+        channel: discord.TextChannel
+    ):
+
+        await self.set_channel(
+            ctx,
+            "report_channel_id",
+            channel,
+            "📨 Reports channel set to {channel.mention}."
+        )
+
+
+    @command(
+        "⚙️ Configuration",
+        "Remove the configured reports channel"
+    )
+    @commands.has_guild_permissions(
+        manage_guild=True
+    )
+    async def unsetreportchannel(
+        self,
+        ctx
+    ):
+
+        await self.unset_channel(
+            ctx,
+            "report_channel_id",
+            "✅ Reports channel removed."
+        )
+
 
     # =====================================
     # SHOW CONFIGURATION
@@ -613,12 +622,15 @@ class Config(commands.Cog):
             return
 
         channel_names = {
+
             "👋 Welcome Channel": 1,
             "🚪 Goodbye Channel": 2,
-            "🎭 Reaction Role Channel": 5
+            "🎭 Reaction Role Channel": 5,
+            "📨 Report Channel": 6
         }
 
         role_names = {
+
             "👋 Welcome Role": 3,
             "👤 Member Role": 4
         }

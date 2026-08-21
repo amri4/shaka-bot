@@ -2,6 +2,9 @@ import discord
 
 from discord.ext import commands
 
+import importlib
+import pkgutil
+
 
 # =========================================================
 # MARKERS
@@ -390,3 +393,35 @@ async def setup_module(bot, module):
     )
 
     return cog
+
+
+# ========================================================
+# SETUP SYSTEM
+# ========================================================
+
+async def setup_system(bot, package_name):
+    package = importlib.import_module(package_name)
+
+    for module_info in pkgutil.walk_packages(
+        package.__path__,
+        prefix=f"{package.__name__}."
+    ):
+        module_name = module_info.name
+
+        # Don't load cog.py again
+        if module_name.endswith(".cog"):
+            continue
+
+        # Ignore private modules
+        if any(
+            part.startswith("_")
+            for part in module_name.split(".")
+        ):
+            continue
+
+        module = importlib.import_module(module_name)
+
+        await setup_module(
+            bot,
+            module
+        )

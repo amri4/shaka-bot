@@ -592,3 +592,16 @@ async def setup_system(
             bot,
             module
 )
+
+
+__all__ = [
+    "command",
+    "listener",
+    "button",
+    "select",
+    "modal",
+    "ui",
+    "create_modal",
+    "setup_module",
+    "setup_system"
+        ]

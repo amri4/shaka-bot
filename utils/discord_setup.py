@@ -7,6 +7,23 @@ import pkgutil
 
 
 # =========================================================
+# PUBLIC API
+# =========================================================
+
+__all__ = [
+    "command",
+    "listener",
+    "button",
+    "select",
+    "modal",
+    "ui",
+    "create_modal",
+    "setup_module",
+    "setup_system",
+]
+
+
+# =========================================================
 # MARKERS
 # =========================================================
 
@@ -32,7 +49,10 @@ BUTTON_COLORS = {
 
 def get_button_style(color):
 
-    if isinstance(color, discord.ButtonStyle):
+    if isinstance(
+        color,
+        discord.ButtonStyle
+    ):
         return color
 
     return BUTTON_COLORS.get(
@@ -168,7 +188,7 @@ def modal(
         )
 
         # -------------------------------------------------
-        # INPUT
+        # INPUT BUILDER
         # -------------------------------------------------
 
         def input_field(
@@ -205,15 +225,99 @@ def modal(
 
             return func
 
-        # Allow:
-        #
-        # something.input(...)
-        #
         func.input = input_field
 
         return func
 
     return decorator
+
+
+# =========================================================
+# MAKE BUTTON
+# =========================================================
+
+def _make_button(func):
+
+    data = getattr(
+        func,
+        BUTTON_MARKER
+    )
+
+    return discord.ui.button(
+        label=data["label"],
+        style=get_button_style(
+            data["color"]
+        ),
+        emoji=data["emoji"],
+        row=data["row"],
+        disabled=data["disabled"]
+    )(func)
+
+
+# =========================================================
+# MAKE SELECT
+# =========================================================
+
+def _make_select(func):
+
+    data = getattr(
+        func,
+        SELECT_MARKER
+    )
+
+    options = []
+
+    for option in data["options"]:
+
+        # ---------------------------------------------
+        # SelectOption
+        # ---------------------------------------------
+
+        if isinstance(
+            option,
+            discord.SelectOption
+        ):
+
+            options.append(
+                option
+            )
+
+        # ---------------------------------------------
+        # Dictionary
+        # ---------------------------------------------
+
+        elif isinstance(
+            option,
+            dict
+        ):
+
+            options.append(
+                discord.SelectOption(
+                    **option
+                )
+            )
+
+        # ---------------------------------------------
+        # Simple string
+        # ---------------------------------------------
+
+        else:
+
+            options.append(
+                discord.SelectOption(
+                    label=str(option),
+                    value=str(option)
+                )
+            )
+
+    return discord.ui.select(
+        placeholder=data["placeholder"],
+        options=options,
+        min_values=data["min_values"],
+        max_values=data["max_values"],
+        row=data["row"],
+        disabled=data["disabled"]
+    )(func)
 
 
 # =========================================================
@@ -289,6 +393,7 @@ def create_modal(func):
         func,
         MODAL_MARKER
     ):
+
         raise TypeError(
             f"{func!r} is not a discord_setup modal."
         )
@@ -301,81 +406,7 @@ def create_modal(func):
 
 
 # =========================================================
-# MAKE BUTTON
-# =========================================================
-
-def _make_button(func):
-
-    data = getattr(
-        func,
-        BUTTON_MARKER
-    )
-
-    return discord.ui.button(
-        label=data["label"],
-        style=get_button_style(
-            data["color"]
-        ),
-        emoji=data["emoji"],
-        row=data["row"],
-        disabled=data["disabled"]
-    )(func)
-
-
-# =========================================================
-# MAKE SELECT
-# =========================================================
-
-def _make_select(func):
-
-    data = getattr(
-        func,
-        SELECT_MARKER
-    )
-
-    options = []
-
-    for option in data["options"]:
-
-        # Already a SelectOption
-        if isinstance(
-            option,
-            discord.SelectOption
-        ):
-            options.append(option)
-
-        # Dictionary
-        elif isinstance(
-            option,
-            dict
-        ):
-            options.append(
-                discord.SelectOption(
-                    **option
-                )
-            )
-
-        # Simple string
-        else:
-            options.append(
-                discord.SelectOption(
-                    label=str(option),
-                    value=str(option)
-                )
-            )
-
-    return discord.ui.select(
-        placeholder=data["placeholder"],
-        options=options,
-        min_values=data["min_values"],
-        max_values=data["max_values"],
-        row=data["row"],
-        disabled=data["disabled"]
-    )(func)
-
-
-# =========================================================
-# UI
+# UI VIEW
 # =========================================================
 
 def ui(
@@ -455,6 +486,10 @@ def _build_cog(
 
     attributes = {}
 
+    print(
+        f"🔧 Building Cog: {module.__name__}"
+    )
+
     for name in dir(module):
 
         obj = getattr(
@@ -465,9 +500,9 @@ def _build_cog(
         if not callable(obj):
             continue
 
-        # ---------------------------------------------
+        # =============================================
         # COMMAND
-        # ---------------------------------------------
+        # =============================================
 
         if hasattr(
             obj,
@@ -479,15 +514,23 @@ def _build_cog(
                 COMMAND_MARKER
             )
 
-            attributes[name] = commands.command(
+            command_obj = commands.command(
                 **kwargs
             )(obj)
 
-        # ---------------------------------------------
-        # LISTENER
-        # ---------------------------------------------
+            attributes[name] = command_obj
 
-        elif hasattr(
+            print(
+                f"  ├─ Registered command: {name}"
+            )
+
+            continue
+
+        # =============================================
+        # LISTENER
+        # =============================================
+
+        if hasattr(
             obj,
             LISTENER_MARKER
         ):
@@ -497,29 +540,56 @@ def _build_cog(
                 LISTENER_MARKER
             )
 
-            attributes[name] = (
-                commands.Cog.listener(
-                    name=listener_name
-                )(obj)
+            listener_obj = commands.Cog.listener(
+                name=listener_name
+            )(obj)
+
+            attributes[name] = listener_obj
+
+            print(
+                f"  ├─ Registered listener: {name}"
             )
 
-    # Nothing to register
+            continue
+
+    # =============================================
+    # NOTHING FOUND
+    # =============================================
+
     if not attributes:
+
+        print(
+            f"  ⚠️ No commands or listeners found "
+            f"in {module.__name__}"
+        )
+
         return None
 
-    # Cog constructor
+    # =============================================
+    # COG CONSTRUCTOR
+    # =============================================
+
     def __init__(
         self,
         bot
     ):
+
         self.bot = bot
 
     attributes["__init__"] = __init__
+
+    # =============================================
+    # CREATE COG CLASS
+    # =============================================
 
     CogClass = type(
         f"{module.__name__.split('.')[-1].title()}Cog",
         (commands.Cog,),
         attributes
+    )
+
+    print(
+        f"  ✅ Created Cog: {CogClass.__name__}"
     )
 
     return CogClass(
@@ -536,16 +606,25 @@ async def setup_module(
     module
 ):
 
+    print(
+        f"📦 Setting up module: {module.__name__}"
+    )
+
     cog = _build_cog(
         bot,
         module
     )
 
     if cog is None:
+
         return None
 
     await bot.add_cog(
         cog
+    )
+
+    print(
+        f"  ✅ Loaded: {module.__name__}"
     )
 
     return cog
@@ -560,9 +639,17 @@ async def setup_system(
     package_name
 ):
 
+    print(
+        f"🔍 Scanning system: {package_name}"
+    )
+
     package = importlib.import_module(
         package_name
     )
+
+    # =============================================
+    # WALK PACKAGE
+    # =============================================
 
     for module_info in pkgutil.walk_packages(
         package.__path__,
@@ -571,37 +658,52 @@ async def setup_system(
 
         module_name = module_info.name
 
-        # Don't load cog.py again
+        # -----------------------------------------
+        # DON'T LOAD cog.py
+        # -----------------------------------------
+
         if module_name.endswith(
             ".cog"
         ):
+
             continue
 
-        # Ignore private modules
+        # -----------------------------------------
+        # IGNORE PRIVATE MODULES
+        # -----------------------------------------
+
         if any(
             part.startswith("_")
             for part in module_name.split(".")
         ):
+
             continue
 
-        module = importlib.import_module(
-            module_name
-        )
+        try:
 
-        await setup_module(
-            bot,
-            module
-)
+            module = importlib.import_module(
+                module_name
+            )
 
+        except Exception as e:
 
-__all__ = [
-    "command",
-    "listener",
-    "button",
-    "select",
-    "modal",
-    "ui",
-    "create_modal",
-    "setup_module",
-    "setup_system"
-        ]
+            print(
+                f"  ❌ Failed to import "
+                f"{module_name}: {e}"
+            )
+
+            continue
+
+        try:
+
+            await setup_module(
+                bot,
+                module
+            )
+
+        except Exception as e:
+
+            print(
+                f"  ❌ Failed to setup "
+                f"{module_name}: {e}"
+                )

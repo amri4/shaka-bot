@@ -14,6 +14,7 @@ COMMAND_MARKER = "__discord_setup_command__"
 LISTENER_MARKER = "__discord_setup_listener__"
 BUTTON_MARKER = "__discord_setup_button__"
 SELECT_MARKER = "__discord_setup_select__"
+MODAL_MARKER = "__discord_setup_modal__"
 
 
 # =========================================================
@@ -145,6 +146,161 @@ def select(
 
 
 # =========================================================
+# MODAL
+# =========================================================
+
+def modal(
+    title,
+    *,
+    timeout=180
+):
+
+    def decorator(func):
+
+        setattr(
+            func,
+            MODAL_MARKER,
+            {
+                "title": title,
+                "timeout": timeout,
+                "inputs": []
+            }
+        )
+
+        # -------------------------------------------------
+        # INPUT
+        # -------------------------------------------------
+
+        def input_field(
+            name,
+            label,
+            *,
+            placeholder=None,
+            default=None,
+            required=True,
+            min_length=None,
+            max_length=None,
+            style=discord.TextStyle.short,
+            row=None
+        ):
+
+            data = getattr(
+                func,
+                MODAL_MARKER
+            )
+
+            data["inputs"].append(
+                {
+                    "name": name,
+                    "label": label,
+                    "placeholder": placeholder,
+                    "default": default,
+                    "required": required,
+                    "min_length": min_length,
+                    "max_length": max_length,
+                    "style": style,
+                    "row": row
+                }
+            )
+
+            return func
+
+        # Allow:
+        #
+        # something.input(...)
+        #
+        func.input = input_field
+
+        return func
+
+    return decorator
+
+
+# =========================================================
+# MAKE MODAL
+# =========================================================
+
+def _make_modal(func):
+
+    data = getattr(
+        func,
+        MODAL_MARKER
+    )
+
+    class GeneratedModal(
+        discord.ui.Modal
+    ):
+
+        def __init__(self):
+
+            super().__init__(
+                title=data["title"],
+                timeout=data["timeout"]
+            )
+
+            self._inputs = {}
+
+            for input_data in data["inputs"]:
+
+                text_input = discord.ui.TextInput(
+                    label=input_data["label"],
+                    placeholder=input_data["placeholder"],
+                    default=input_data["default"],
+                    required=input_data["required"],
+                    min_length=input_data["min_length"],
+                    max_length=input_data["max_length"],
+                    style=input_data["style"]
+                )
+
+                self.add_item(
+                    text_input
+                )
+
+                self._inputs[
+                    input_data["name"]
+                ] = text_input
+
+        async def on_submit(
+            self,
+            interaction: discord.Interaction
+        ):
+
+            values = {}
+
+            for name, text_input in self._inputs.items():
+
+                values[name] = text_input.value
+
+            await func(
+                interaction,
+                values
+            )
+
+    return GeneratedModal
+
+
+# =========================================================
+# CREATE MODAL
+# =========================================================
+
+def create_modal(func):
+
+    if not hasattr(
+        func,
+        MODAL_MARKER
+    ):
+        raise TypeError(
+            f"{func!r} is not a discord_setup modal."
+        )
+
+    ModalClass = _make_modal(
+        func
+    )
+
+    return ModalClass()
+
+
+# =========================================================
 # MAKE BUTTON
 # =========================================================
 
@@ -222,38 +378,31 @@ def _make_select(func):
 # UI
 # =========================================================
 
-def ui(*components, timeout=180):
+def ui(
+    *components,
+    timeout=180
+):
 
-    """
-    Creates a fresh discord.ui.View.
-
-    Example:
-
-        view = ui(
-            approve,
-            reject,
-            close
-        )
-
-    Every call creates a new View.
-    """
-
-    class GeneratedView(discord.ui.View):
+    class GeneratedView(
+        discord.ui.View
+    ):
 
         def __init__(self):
+
             super().__init__(
                 timeout=timeout
             )
 
     for component in components:
 
-        component_type = getattr(
-            component,
-            BUTTON_MARKER,
-            None
-        )
+        # ---------------------------------------------
+        # BUTTON
+        # ---------------------------------------------
 
-        if component_type is not None:
+        if hasattr(
+            component,
+            BUTTON_MARKER
+        ):
 
             item = _make_button(
                 component
@@ -267,13 +416,14 @@ def ui(*components, timeout=180):
 
             continue
 
-        component_type = getattr(
-            component,
-            SELECT_MARKER,
-            None
-        )
+        # ---------------------------------------------
+        # SELECT
+        # ---------------------------------------------
 
-        if component_type is not None:
+        if hasattr(
+            component,
+            SELECT_MARKER
+        ):
 
             item = _make_select(
                 component
@@ -298,7 +448,10 @@ def ui(*components, timeout=180):
 # AUTOMATIC COG CREATION
 # =========================================================
 
-def _build_cog(bot, module):
+def _build_cog(
+    bot,
+    module
+):
 
     attributes = {}
 
@@ -355,7 +508,10 @@ def _build_cog(bot, module):
         return None
 
     # Cog constructor
-    def __init__(self, bot):
+    def __init__(
+        self,
+        bot
+    ):
         self.bot = bot
 
     attributes["__init__"] = __init__
@@ -366,19 +522,19 @@ def _build_cog(bot, module):
         attributes
     )
 
-    return CogClass(bot)
+    return CogClass(
+        bot
+    )
 
 
 # =========================================================
 # SETUP MODULE
 # =========================================================
 
-async def setup_module(bot, module):
-
-    """
-    Automatically turns decorated commands/listeners
-    in a module into a Cog and loads it into the bot.
-    """
+async def setup_module(
+    bot,
+    module
+):
 
     cog = _build_cog(
         bot,
@@ -395,21 +551,30 @@ async def setup_module(bot, module):
     return cog
 
 
-# ========================================================
+# =========================================================
 # SETUP SYSTEM
-# ========================================================
+# =========================================================
 
-async def setup_system(bot, package_name):
-    package = importlib.import_module(package_name)
+async def setup_system(
+    bot,
+    package_name
+):
+
+    package = importlib.import_module(
+        package_name
+    )
 
     for module_info in pkgutil.walk_packages(
         package.__path__,
         prefix=f"{package.__name__}."
     ):
+
         module_name = module_info.name
 
         # Don't load cog.py again
-        if module_name.endswith(".cog"):
+        if module_name.endswith(
+            ".cog"
+        ):
             continue
 
         # Ignore private modules
@@ -419,9 +584,11 @@ async def setup_system(bot, package_name):
         ):
             continue
 
-        module = importlib.import_module(module_name)
+        module = importlib.import_module(
+            module_name
+        )
 
         await setup_module(
             bot,
             module
-        )
+)

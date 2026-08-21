@@ -4,6 +4,8 @@ import mycord
 from datetime import datetime
 from utils.discord_setup import command
 
+from ..buttons.approve import approve
+
 
 db = mycord.PunksDB()
 
@@ -214,5 +216,5 @@ async def report(ctx, *, reason: str):
     )
 
     await report_channel.send(
-        embed=mod_embed
+        embed=mod_embed, view=ui(approve)
         )

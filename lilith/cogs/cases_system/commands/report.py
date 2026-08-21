@@ -6,10 +6,6 @@ from datetime import datetime
 
 db = mycord.PunksDB()
 
-class Reports(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
     def get_report_channel_id(self, guild_id):
         data = db.fetchone(
             "server_config",
@@ -151,5 +147,3 @@ class Reports(commands.Cog):
         )
         await report_channel.send(embed=mod_embed)
         
-async def setup(bot):
-    await bot.add_cog(Reports(bot))

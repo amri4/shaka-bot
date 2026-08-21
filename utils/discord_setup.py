@@ -189,7 +189,7 @@ def modal(
         )
 
         # -------------------------------------------------
-        # INPUT
+        # INPUT BUILDER
         # -------------------------------------------------
 
         def input_field(
@@ -244,6 +244,22 @@ def _make_button(func):
         BUTTON_MARKER
     )
 
+    original = func
+
+    async def callback(
+        self,
+        interaction,
+        button_item
+    ):
+
+        return await original(
+            interaction,
+            button_item
+        )
+
+    callback.__name__ = original.__name__
+    callback.__doc__ = original.__doc__
+
     return discord.ui.button(
         label=data["label"],
         style=get_button_style(
@@ -252,7 +268,7 @@ def _make_button(func):
         emoji=data["emoji"],
         row=data["row"],
         disabled=data["disabled"]
-    )(func)
+    )(callback)
 
 
 # =========================================================
@@ -299,7 +315,7 @@ def _make_select(func):
             )
 
         # ---------------------------------------------
-        # Simple value
+        # Simple string
         # ---------------------------------------------
 
         else:
@@ -311,6 +327,22 @@ def _make_select(func):
                 )
             )
 
+    original = func
+
+    async def callback(
+        self,
+        interaction,
+        select_item
+    ):
+
+        return await original(
+            interaction,
+            select_item
+        )
+
+    callback.__name__ = original.__name__
+    callback.__doc__ = original.__doc__
+
     return discord.ui.select(
         placeholder=data["placeholder"],
         options=options,
@@ -318,7 +350,7 @@ def _make_select(func):
         max_values=data["max_values"],
         row=data["row"],
         disabled=data["disabled"]
-    )(func)
+    )(callback)
 
 
 # =========================================================
@@ -331,6 +363,8 @@ def _make_modal(func):
         func,
         MODAL_MARKER
     )
+
+    original = func
 
     class GeneratedModal(
         discord.ui.Modal
@@ -376,7 +410,7 @@ def _make_modal(func):
 
                 values[name] = text_input.value
 
-            await func(
+            return await original(
                 interaction,
                 values
             )
@@ -764,4 +798,4 @@ async def setup_system(
             print(
                 f"  ❌ Failed to setup "
                 f"{module_name}: {e}"
-        )
+    )

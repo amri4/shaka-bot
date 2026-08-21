@@ -71,26 +71,20 @@ for name, config in BOT_CONFIG.items():
         intents=intents
     )
 
-    # Store the satellite name.
-    # The hierarchy system can use this
-    # to identify which bot a command belongs to.
+    # Store satellite name
     bot.satellite_name = name
 
     bots[name] = bot
 
 
 # =========================================
-# LOAD COGS
+# LOAD SYSTEMS
 # =========================================
 
-async def load_cogs(
-    bot,
-    name,
-    folder
-):
+async def load_cogs(bot, name, folder):
 
     print(
-        f"📂 {name}: Scanning for cogs..."
+        f"📂 {name}: Scanning for systems..."
     )
 
     cog_folder = f"./{folder}/cogs"
@@ -103,34 +97,49 @@ async def load_cogs(
 
         return
 
-    for filename in os.listdir(cog_folder):
+    for system in os.listdir(cog_folder):
 
-        if (
-            filename.endswith(".py")
-            and not filename.startswith("__")
-        ):
+        system_path = os.path.join(
+            cog_folder,
+            system
+        )
 
-            extension = (
-                f"{folder}.cogs.{filename[:-3]}"
+        # Only load folders
+        if not os.path.isdir(system_path):
+            continue
+
+        # Ignore __pycache__, hidden folders, etc.
+        if system.startswith("_"):
+            continue
+
+        # Every system must have:
+        #
+        # cogs/
+        # └── system_name/
+        #     └── cog.py
+        #
+        extension = (
+            f"{folder}.cogs.{system}.cog"
+        )
+
+        try:
+
+            await bot.load_extension(
+                extension
             )
 
-            try:
+            print(
+                f"  └─ {name} loaded system: "
+                f"{system}"
+            )
 
-                await bot.load_extension(
-                    extension
-                )
+        except Exception as e:
 
-                print(
-                    f"  └─ {name} loaded cog: "
-                    f"{filename}"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"  ❌ {name} failed to load "
-                    f"{filename}: {e}"
-                )
+            print(
+                f"  ❌ {name} failed to load "
+                f"{system}: "
+                f"{type(e).__name__}: {e}"
+            )
 
 
 # =========================================
@@ -178,12 +187,14 @@ async def start_bot(
 
         return
 
+    # Load all system folders
     await load_cogs(
         bot,
         name,
         config["folder"]
     )
 
+    # Setup ready event
     setup_ready_event(
         bot,
         name
@@ -198,7 +209,8 @@ async def start_bot(
     except Exception as e:
 
         print(
-            f"❌ {name} stopped: {e}"
+            f"❌ {name} stopped: "
+            f"{type(e).__name__}: {e}"
         )
 
 

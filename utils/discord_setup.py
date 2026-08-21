@@ -244,23 +244,7 @@ def _make_button(func):
         BUTTON_MARKER
     )
 
-    original = func
-
-    async def callback(
-        self,
-        interaction,
-        button_item
-    ):
-
-        return await original(
-            interaction,
-            button_item
-        )
-
-    callback.__name__ = original.__name__
-    callback.__doc__ = original.__doc__
-
-    return discord.ui.button(
+    item = discord.ui.Button(
         label=data["label"],
         style=get_button_style(
             data["color"]
@@ -268,7 +252,20 @@ def _make_button(func):
         emoji=data["emoji"],
         row=data["row"],
         disabled=data["disabled"]
-    )(callback)
+    )
+
+    original = func
+
+    async def callback(interaction):
+
+        await original(
+            interaction,
+            item
+        )
+
+    item.callback = callback
+
+    return item
 
 
 # =========================================================
@@ -449,65 +446,49 @@ def ui(
     timeout=180
 ):
 
-    attributes = {}
+    class GeneratedView(
+        discord.ui.View
+    ):
 
-    for component in components:
+        def __init__(self):
 
-        # =============================================
-        # BUTTON
-        # =============================================
-
-        if hasattr(
-            component,
-            BUTTON_MARKER
-        ):
-
-            attributes[
-                component.__name__
-            ] = _make_button(
-                component
+            super().__init__(
+                timeout=timeout
             )
 
-            continue
+            for component in components:
 
-        # =============================================
-        # SELECT
-        # =============================================
+                if hasattr(
+                    component,
+                    BUTTON_MARKER
+                ):
 
-        if hasattr(
-            component,
-            SELECT_MARKER
-        ):
+                    self.add_item(
+                        _make_button(
+                            component
+                        )
+                    )
 
-            attributes[
-                component.__name__
-            ] = _make_select(
-                component
-            )
+                    continue
 
-            continue
+                if hasattr(
+                    component,
+                    SELECT_MARKER
+                ):
 
-        raise TypeError(
-            f"{component!r} is not a supported UI component."
-        )
+                    self.add_item(
+                        _make_select(
+                            component
+                        )
+                    )
 
-    # =============================================
-    # CREATE VIEW CLASS
-    # =============================================
+                    continue
 
-    GeneratedView = type(
-        "GeneratedView",
-        (discord.ui.View,),
-        attributes
-    )
+                raise TypeError(
+                    f"{component!r} is not a supported UI component."
+                )
 
-    # =============================================
-    # CREATE VIEW INSTANCE
-    # =============================================
-
-    return GeneratedView(
-        timeout=timeout
-    )
+    return GeneratedView()
 
 
 # =========================================================

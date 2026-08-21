@@ -271,7 +271,7 @@ def _make_select(func):
     for option in data["options"]:
 
         # ---------------------------------------------
-        # Already a SelectOption
+        # SelectOption
         # ---------------------------------------------
 
         if isinstance(
@@ -415,56 +415,40 @@ def ui(
     timeout=180
 ):
 
-    class GeneratedView(
-        discord.ui.View
-    ):
-
-        def __init__(self):
-
-            super().__init__(
-                timeout=timeout
-            )
+    attributes = {}
 
     for component in components:
 
-        # ---------------------------------------------
+        # =============================================
         # BUTTON
-        # ---------------------------------------------
+        # =============================================
 
         if hasattr(
             component,
             BUTTON_MARKER
         ):
 
-            item = _make_button(
+            attributes[
+                component.__name__
+            ] = _make_button(
                 component
-            )
-
-            setattr(
-                GeneratedView,
-                component.__name__,
-                item
             )
 
             continue
 
-        # ---------------------------------------------
+        # =============================================
         # SELECT
-        # ---------------------------------------------
+        # =============================================
 
         if hasattr(
             component,
             SELECT_MARKER
         ):
 
-            item = _make_select(
+            attributes[
+                component.__name__
+            ] = _make_select(
                 component
-            )
-
-            setattr(
-                GeneratedView,
-                component.__name__,
-                item
             )
 
             continue
@@ -473,11 +457,27 @@ def ui(
             f"{component!r} is not a supported UI component."
         )
 
-    return GeneratedView()
+    # =============================================
+    # CREATE VIEW CLASS
+    # =============================================
+
+    GeneratedView = type(
+        "GeneratedView",
+        (discord.ui.View,),
+        attributes
+    )
+
+    # =============================================
+    # CREATE VIEW INSTANCE
+    # =============================================
+
+    return GeneratedView(
+        timeout=timeout
+    )
 
 
 # =========================================================
-# BUILD COMMAND WRAPPER
+# BUILD COMMAND
 # =========================================================
 
 def _build_command(
@@ -487,7 +487,9 @@ def _build_command(
 
     original = func
 
-    @functools.wraps(original)
+    @functools.wraps(
+        original
+    )
     async def command_wrapper(
         self,
         *args,
@@ -501,11 +503,13 @@ def _build_command(
 
     return commands.command(
         **kwargs
-    )(command_wrapper)
+    )(
+        command_wrapper
+    )
 
 
 # =========================================================
-# BUILD LISTENER WRAPPER
+# BUILD LISTENER
 # =========================================================
 
 def _build_listener(
@@ -515,7 +519,9 @@ def _build_listener(
 
     original = func
 
-    @functools.wraps(original)
+    @functools.wraps(
+        original
+    )
     async def listener_wrapper(
         self,
         *args,
@@ -529,7 +535,9 @@ def _build_listener(
 
     return commands.Cog.listener(
         name=listener_name
-    )(listener_wrapper)
+    )(
+        listener_wrapper
+    )
 
 
 # =========================================================
@@ -608,7 +616,7 @@ def _build_cog(
             continue
 
     # =============================================
-    # NO COG CONTENT
+    # NOTHING TO REGISTER
     # =============================================
 
     if not attributes:
@@ -741,7 +749,7 @@ async def setup_system(
             continue
 
         # =============================================
-        # BUILD COG
+        # SETUP MODULE
         # =============================================
 
         try:
@@ -756,4 +764,4 @@ async def setup_system(
             print(
                 f"  ❌ Failed to setup "
                 f"{module_name}: {e}"
-)
+        )

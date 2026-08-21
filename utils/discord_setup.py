@@ -4,6 +4,7 @@ from discord.ext import commands
 
 import importlib
 import pkgutil
+import functools
 
 
 # =========================================================
@@ -188,7 +189,7 @@ def modal(
         )
 
         # -------------------------------------------------
-        # INPUT BUILDER
+        # INPUT
         # -------------------------------------------------
 
         def input_field(
@@ -270,7 +271,7 @@ def _make_select(func):
     for option in data["options"]:
 
         # ---------------------------------------------
-        # SelectOption
+        # Already a SelectOption
         # ---------------------------------------------
 
         if isinstance(
@@ -298,7 +299,7 @@ def _make_select(func):
             )
 
         # ---------------------------------------------
-        # Simple string
+        # Simple value
         # ---------------------------------------------
 
         else:
@@ -406,7 +407,7 @@ def create_modal(func):
 
 
 # =========================================================
-# UI VIEW
+# UI
 # =========================================================
 
 def ui(
@@ -476,6 +477,62 @@ def ui(
 
 
 # =========================================================
+# BUILD COMMAND WRAPPER
+# =========================================================
+
+def _build_command(
+    func,
+    kwargs
+):
+
+    original = func
+
+    @functools.wraps(original)
+    async def command_wrapper(
+        self,
+        *args,
+        **command_kwargs
+    ):
+
+        return await original(
+            *args,
+            **command_kwargs
+        )
+
+    return commands.command(
+        **kwargs
+    )(command_wrapper)
+
+
+# =========================================================
+# BUILD LISTENER WRAPPER
+# =========================================================
+
+def _build_listener(
+    func,
+    listener_name
+):
+
+    original = func
+
+    @functools.wraps(original)
+    async def listener_wrapper(
+        self,
+        *args,
+        **kwargs
+    ):
+
+        return await original(
+            *args,
+            **kwargs
+        )
+
+    return commands.Cog.listener(
+        name=listener_name
+    )(listener_wrapper)
+
+
+# =========================================================
 # AUTOMATIC COG CREATION
 # =========================================================
 
@@ -514,11 +571,10 @@ def _build_cog(
                 COMMAND_MARKER
             )
 
-            command_obj = commands.command(
-                **kwargs
-            )(obj)
-
-            attributes[name] = command_obj
+            attributes[name] = _build_command(
+                obj,
+                kwargs
+            )
 
             print(
                 f"  ├─ Registered command: {name}"
@@ -540,11 +596,10 @@ def _build_cog(
                 LISTENER_MARKER
             )
 
-            listener_obj = commands.Cog.listener(
-                name=listener_name
-            )(obj)
-
-            attributes[name] = listener_obj
+            attributes[name] = _build_listener(
+                obj,
+                listener_name
+            )
 
             print(
                 f"  ├─ Registered listener: {name}"
@@ -553,15 +608,10 @@ def _build_cog(
             continue
 
     # =============================================
-    # NOTHING FOUND
+    # NO COG CONTENT
     # =============================================
 
     if not attributes:
-
-        print(
-            f"  ⚠️ No commands or listeners found "
-            f"in {module.__name__}"
-        )
 
         return None
 
@@ -606,10 +656,6 @@ async def setup_module(
     module
 ):
 
-    print(
-        f"📦 Setting up module: {module.__name__}"
-    )
-
     cog = _build_cog(
         bot,
         module
@@ -647,10 +693,6 @@ async def setup_system(
         package_name
     )
 
-    # =============================================
-    # WALK PACKAGE
-    # =============================================
-
     for module_info in pkgutil.walk_packages(
         package.__path__,
         prefix=f"{package.__name__}."
@@ -658,9 +700,9 @@ async def setup_system(
 
         module_name = module_info.name
 
-        # -----------------------------------------
-        # DON'T LOAD cog.py
-        # -----------------------------------------
+        # ---------------------------------------------
+        # Don't load cog.py again
+        # ---------------------------------------------
 
         if module_name.endswith(
             ".cog"
@@ -668,9 +710,9 @@ async def setup_system(
 
             continue
 
-        # -----------------------------------------
-        # IGNORE PRIVATE MODULES
-        # -----------------------------------------
+        # ---------------------------------------------
+        # Ignore private modules
+        # ---------------------------------------------
 
         if any(
             part.startswith("_")
@@ -678,6 +720,10 @@ async def setup_system(
         ):
 
             continue
+
+        # =============================================
+        # IMPORT MODULE
+        # =============================================
 
         try:
 
@@ -694,6 +740,10 @@ async def setup_system(
 
             continue
 
+        # =============================================
+        # BUILD COG
+        # =============================================
+
         try:
 
             await setup_module(
@@ -706,4 +756,4 @@ async def setup_system(
             print(
                 f"  ❌ Failed to setup "
                 f"{module_name}: {e}"
-                )
+)

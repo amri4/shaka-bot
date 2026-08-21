@@ -2,7 +2,6 @@ import discord
 import mycord
 
 from datetime import datetime
-from utils.discord_setup import command
 
 from utils.discord_setup import *
 from ..buttons.approve import approve

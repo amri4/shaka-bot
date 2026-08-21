@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import mycord
-from utils.command import command
+from utils.discord_setup import command
 from datetime import datetime
 
 db = mycord.PunksDB()
@@ -22,7 +22,7 @@ class Reports(commands.Cog):
 
         return data[6]
     
-    @command("🔴 Reports", description="Report a message to staff", usage="<reply to message> <reason>")
+    @command()
     async def report(self, ctx, *, reason: str):
         if not ctx.message.reference:
             await ctx.send("❌️ You must reply to the message you're reporting, *sigh*")

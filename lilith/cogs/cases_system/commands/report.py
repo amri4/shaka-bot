@@ -10,6 +10,9 @@ from ..buttons.approve import approve
 
 db = mycord.PunksDB()
 
+@command()
+async def testreport(ctx):
+    await ctx.send("REPORT MODULE WORKS")
 
 def get_report_channel_id(guild_id):
 
@@ -219,3 +222,4 @@ async def report(ctx, *, reason: str):
     await report_channel.send(
         embed=mod_embed, view=ui(approve)
         )
+print("🔥 REPORT.PY IMPORTED")

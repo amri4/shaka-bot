@@ -219,7 +219,22 @@ async def report(ctx, *, reason: str):
         inline=True
     )
 
-    await report_channel.send(
-        embed=mod_embed, view=ui(approve, open_modal)
-        )
+    message = (
+        "🧪 Punishment test\n\n"
+            "React with:\n"
+            "⚠️ Warning\n"
+            "🔇 Timeout\n"
+            "👢 Kick\n\n"
+            "Then press Continue."
+    )
+    mod_embed.add_field(
+        name="Actions",
+        value=message,
+        inline=True
+    )
+
+    report_message = await report_channel.send(embed=mod_embed, view=ui(continue_punishments))
+    await message.add_reaction("⚠️")
+    await message.add_reaction("🔇")
+    await message.add_reaction("👢")
 print("🔥 REPORT.PY IMPORTED")

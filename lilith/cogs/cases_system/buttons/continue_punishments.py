@@ -1,6 +1,6 @@
 from utils.discord_setup import *
 
-from ..reactions.punishment import (
+from ..reactions.punishments import (
     get_selected_punishments
 )
 

@@ -24,6 +24,9 @@ def get_punishments():
     return result
 
 
+selected_punishments = {}
+
+
 @commands.Cog.listener()
 async def on_raw_reaction_add(
     self,
@@ -40,6 +43,34 @@ async def on_raw_reaction_add(
     if not punishment:
         return
 
-    print(
-        f"Punishment selected: {punishment.NAME}"
-)
+    key = (
+        payload.message_id,
+        payload.user_id
+    )
+
+    selected_punishments.setdefault(
+        key,
+        []
+    )
+
+    if punishment not in selected_punishments[key]:
+
+        selected_punishments[key].append(
+            punishment
+        )
+
+        print(
+            f"Punishment selected: "
+            f"{punishment.NAME}"
+        )
+
+
+async def get_selected_punishments(
+    message,
+    user_id
+):
+
+    return selected_punishments.get(
+        (message.id, user_id),
+        []
+    )

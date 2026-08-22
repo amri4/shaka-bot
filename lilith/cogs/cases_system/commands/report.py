@@ -233,6 +233,5 @@ async def report(ctx, *, reason: str):
     )
 
     report_message = await report_channel.send(embed=mod_embed, view=ui(continue_punishments))
-    await report_message.add_reaction("⚠️")
     await report_message.add_reaction("🔇")
     await report_message.add_reaction("👢")

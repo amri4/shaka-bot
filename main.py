@@ -65,6 +65,7 @@ for name, config in BOT_CONFIG.items():
 
     intents.message_content = True
     intents.members = True
+    intents.reactions = True
 
     bot = commands.Bot(
         command_prefix=config["prefix"],

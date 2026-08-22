@@ -1,43 +1,9 @@
 import discord
 
-from discord.ext import commands
 
-import importlib
-import pkgutil
-import functools
-
-
-# =========================================================
-# PUBLIC API
-# =========================================================
-
-__all__ = [
-    "command",
-    "listener",
-    "button",
-    "select",
-    "modal",
-    "ui",
-    "create_modal",
-    "setup_module",
-    "setup_system",
-]
-
-
-# =========================================================
-# MARKERS
-# =========================================================
-
-COMMAND_MARKER = "__discord_setup_command__"
-LISTENER_MARKER = "__discord_setup_listener__"
-BUTTON_MARKER = "__discord_setup_button__"
-SELECT_MARKER = "__discord_setup_select__"
-MODAL_MARKER = "__discord_setup_modal__"
-
-
-# =========================================================
+# =========================================
 # BUTTON COLORS
-# =========================================================
+# =========================================
 
 BUTTON_COLORS = {
     "blue": discord.ButtonStyle.primary,
@@ -50,10 +16,7 @@ BUTTON_COLORS = {
 
 def get_button_style(color):
 
-    if isinstance(
-        color,
-        discord.ButtonStyle
-    ):
+    if isinstance(color, discord.ButtonStyle):
         return color
 
     return BUTTON_COLORS.get(
@@ -62,47 +25,9 @@ def get_button_style(color):
     )
 
 
-# =========================================================
-# COMMAND
-# =========================================================
-
-def command(**kwargs):
-
-    def decorator(func):
-
-        setattr(
-            func,
-            COMMAND_MARKER,
-            kwargs
-        )
-
-        return func
-
-    return decorator
-
-
-# =========================================================
-# LISTENER
-# =========================================================
-
-def listener(name=None):
-
-    def decorator(func):
-
-        setattr(
-            func,
-            LISTENER_MARKER,
-            name
-        )
-
-        return func
-
-    return decorator
-
-
-# =========================================================
+# =========================================
 # BUTTON
-# =========================================================
+# =========================================
 
 def button(
     label,
@@ -115,30 +40,26 @@ def button(
 
     def decorator(func):
 
-        setattr(
-            func,
-            BUTTON_MARKER,
-            {
-                "label": label,
-                "color": color,
-                "emoji": emoji,
-                "row": row,
-                "disabled": disabled
-            }
-        )
+        func.__discord_button__ = {
+            "label": label,
+            "color": color,
+            "emoji": emoji,
+            "row": row,
+            "disabled": disabled
+        }
 
         return func
 
     return decorator
 
 
-# =========================================================
-# SELECT
-# =========================================================
+# =========================================
+# SELECT MENU
+# =========================================
 
 def select(
-    placeholder=None,
     *,
+    placeholder=None,
     options=None,
     min_values=1,
     max_values=1,
@@ -148,27 +69,23 @@ def select(
 
     def decorator(func):
 
-        setattr(
-            func,
-            SELECT_MARKER,
-            {
-                "placeholder": placeholder,
-                "options": options or [],
-                "min_values": min_values,
-                "max_values": max_values,
-                "row": row,
-                "disabled": disabled
-            }
-        )
+        func.__discord_select__ = {
+            "placeholder": placeholder,
+            "options": options or [],
+            "min_values": min_values,
+            "max_values": max_values,
+            "row": row,
+            "disabled": disabled
+        }
 
         return func
 
     return decorator
 
 
-# =========================================================
+# =========================================
 # MODAL
-# =========================================================
+# =========================================
 
 def modal(
     title,
@@ -178,19 +95,11 @@ def modal(
 
     def decorator(func):
 
-        setattr(
-            func,
-            MODAL_MARKER,
-            {
-                "title": title,
-                "timeout": timeout,
-                "inputs": []
-            }
-        )
-
-        # -------------------------------------------------
-        # INPUT BUILDER
-        # -------------------------------------------------
+        func.__discord_modal__ = {
+            "title": title,
+            "timeout": timeout,
+            "inputs": []
+        }
 
         def input_field(
             name,
@@ -201,28 +110,19 @@ def modal(
             required=True,
             min_length=None,
             max_length=None,
-            style=discord.TextStyle.short,
-            row=None
+            style=discord.TextStyle.short
         ):
 
-            data = getattr(
-                func,
-                MODAL_MARKER
-            )
-
-            data["inputs"].append(
-                {
-                    "name": name,
-                    "label": label,
-                    "placeholder": placeholder,
-                    "default": default,
-                    "required": required,
-                    "min_length": min_length,
-                    "max_length": max_length,
-                    "style": style,
-                    "row": row
-                }
-            )
+            func.__discord_modal__["inputs"].append({
+                "name": name,
+                "label": label,
+                "placeholder": placeholder,
+                "default": default,
+                "required": required,
+                "min_length": min_length,
+                "max_length": max_length,
+                "style": style
+            })
 
             return func
 
@@ -233,139 +133,18 @@ def modal(
     return decorator
 
 
-# =========================================================
-# MAKE BUTTON
-# =========================================================
+# =========================================
+# CREATE MODAL
+# =========================================
 
-def _make_button(func):
-
-    data = getattr(
-        func,
-        BUTTON_MARKER
-    )
-
-    item = discord.ui.Button(
-        label=data["label"],
-        style=get_button_style(
-            data["color"]
-        ),
-        emoji=data["emoji"],
-        row=data["row"],
-        disabled=data["disabled"]
-    )
-
-    original = func
-
-    async def callback(interaction):
-
-        await original(
-            interaction,
-            item
-        )
-
-    item.callback = callback
-
-    return item
-
-
-# =========================================================
-# MAKE SELECT
-# =========================================================
-
-def _make_select(func):
+def create_modal(func):
 
     data = getattr(
         func,
-        SELECT_MARKER
+        "__discord_modal__"
     )
 
-    options = []
-
-    for option in data["options"]:
-
-        # ---------------------------------------------
-        # SelectOption
-        # ---------------------------------------------
-
-        if isinstance(
-            option,
-            discord.SelectOption
-        ):
-
-            options.append(
-                option
-            )
-
-        # ---------------------------------------------
-        # Dictionary
-        # ---------------------------------------------
-
-        elif isinstance(
-            option,
-            dict
-        ):
-
-            options.append(
-                discord.SelectOption(
-                    **option
-                )
-            )
-
-        # ---------------------------------------------
-        # Simple string
-        # ---------------------------------------------
-
-        else:
-
-            options.append(
-                discord.SelectOption(
-                    label=str(option),
-                    value=str(option)
-                )
-            )
-
-    original = func
-
-    async def callback(
-        self,
-        interaction,
-        select_item
-    ):
-
-        return await original(
-            interaction,
-            select_item
-        )
-
-    callback.__name__ = original.__name__
-    callback.__doc__ = original.__doc__
-
-    return discord.ui.select(
-        placeholder=data["placeholder"],
-        options=options,
-        min_values=data["min_values"],
-        max_values=data["max_values"],
-        row=data["row"],
-        disabled=data["disabled"]
-    )(callback)
-
-
-# =========================================================
-# MAKE MODAL
-# =========================================================
-
-def _make_modal(func):
-
-    data = getattr(
-        func,
-        MODAL_MARKER
-    )
-
-    original = func
-
-    class GeneratedModal(
-        discord.ui.Modal
-    ):
+    class GeneratedModal(discord.ui.Modal):
 
         def __init__(self):
 
@@ -374,81 +153,51 @@ def _make_modal(func):
                 timeout=data["timeout"]
             )
 
-            self._inputs = {}
+            self.inputs = {}
 
-            for input_data in data["inputs"]:
+            for field in data["inputs"]:
 
                 text_input = discord.ui.TextInput(
-                    label=input_data["label"],
-                    placeholder=input_data["placeholder"],
-                    default=input_data["default"],
-                    required=input_data["required"],
-                    min_length=input_data["min_length"],
-                    max_length=input_data["max_length"],
-                    style=input_data["style"]
+                    label=field["label"],
+                    placeholder=field["placeholder"],
+                    default=field["default"],
+                    required=field["required"],
+                    min_length=field["min_length"],
+                    max_length=field["max_length"],
+                    style=field["style"]
                 )
 
-                self.add_item(
-                    text_input
-                )
+                self.add_item(text_input)
 
-                self._inputs[
-                    input_data["name"]
+                self.inputs[
+                    field["name"]
                 ] = text_input
 
-        async def on_submit(
-            self,
-            interaction: discord.Interaction
-        ):
+        async def on_submit(self, interaction):
 
-            values = {}
+            values = {
+                name: field.value
+                for name, field in self.inputs.items()
+            }
 
-            for name, text_input in self._inputs.items():
-
-                values[name] = text_input.value
-
-            return await original(
+            await func(
                 interaction,
                 values
             )
 
-    return GeneratedModal
+    return GeneratedModal()
 
 
-# =========================================================
-# CREATE MODAL
-# =========================================================
-
-def create_modal(func):
-
-    if not hasattr(
-        func,
-        MODAL_MARKER
-    ):
-
-        raise TypeError(
-            f"{func!r} is not a discord_setup modal."
-        )
-
-    ModalClass = _make_modal(
-        func
-    )
-
-    return ModalClass()
-
-
-# =========================================================
-# UI
-# =========================================================
+# =========================================
+# UI VIEW
+# =========================================
 
 def ui(
     *components,
     timeout=180
 ):
 
-    class GeneratedView(
-        discord.ui.View
-    ):
+    class GeneratedView(discord.ui.View):
 
         def __init__(self):
 
@@ -458,28 +207,107 @@ def ui(
 
             for component in components:
 
+                # -------------------------
+                # BUTTON
+                # -------------------------
+
                 if hasattr(
                     component,
-                    BUTTON_MARKER
+                    "__discord_button__"
                 ):
 
-                    self.add_item(
-                        _make_button(
-                            component
-                        )
+                    data = component.__discord_button__
+
+                    item = discord.ui.Button(
+                        label=data["label"],
+                        style=get_button_style(
+                            data["color"]
+                        ),
+                        emoji=data["emoji"],
+                        row=data["row"],
+                        disabled=data["disabled"]
                     )
+
+                    async def callback(
+                        interaction,
+                        item=item,
+                        func=component
+                    ):
+
+                        await func(
+                            interaction,
+                            item
+                        )
+
+                    item.callback = callback
+
+                    self.add_item(item)
 
                     continue
 
+                # -------------------------
+                # SELECT
+                # -------------------------
+
                 if hasattr(
                     component,
-                    SELECT_MARKER
+                    "__discord_select__"
                 ):
 
-                    self.add_item(
-                        _make_select(
-                            component
+                    data = component.__discord_select__
+
+                    options = []
+
+                    for option in data["options"]:
+
+                        if isinstance(
+                            option,
+                            discord.SelectOption
+                        ):
+                            options.append(option)
+
+                        elif isinstance(
+                            option,
+                            dict
+                        ):
+                            options.append(
+                                discord.SelectOption(
+                                    **option
+                                )
+                            )
+
+                        else:
+                            options.append(
+                                discord.SelectOption(
+                                    label=str(option),
+                                    value=str(option)
+                                )
+                            )
+
+                    select_item = discord.ui.Select(
+                        placeholder=data["placeholder"],
+                        options=options,
+                        min_values=data["min_values"],
+                        max_values=data["max_values"],
+                        row=data["row"],
+                        disabled=data["disabled"]
+                    )
+
+                    async def callback(
+                        interaction,
+                        item=select_item,
+                        func=component
+                    ):
+
+                        await func(
+                            interaction,
+                            item
                         )
+
+                    select_item.callback = callback
+
+                    self.add_item(
+                        select_item
                     )
 
                     continue
@@ -489,294 +317,3 @@ def ui(
                 )
 
     return GeneratedView()
-
-
-# =========================================================
-# BUILD COMMAND
-# =========================================================
-
-def _build_command(
-    func,
-    kwargs
-):
-
-    original = func
-
-    @functools.wraps(
-        original
-    )
-    async def command_wrapper(
-        self,
-        *args,
-        **command_kwargs
-    ):
-
-        return await original(
-            *args,
-            **command_kwargs
-        )
-
-    return commands.command(
-        **kwargs
-    )(
-        command_wrapper
-    )
-
-
-# =========================================================
-# BUILD LISTENER
-# =========================================================
-
-def _build_listener(
-    func,
-    listener_name
-):
-
-    original = func
-
-    @functools.wraps(
-        original
-    )
-    async def listener_wrapper(
-        self,
-        *args,
-        **kwargs
-    ):
-
-        return await original(
-            *args,
-            **kwargs
-        )
-
-    return commands.Cog.listener(
-        name=listener_name
-    )(
-        listener_wrapper
-    )
-
-
-# =========================================================
-# AUTOMATIC COG CREATION
-# =========================================================
-
-def _build_cog(
-    bot,
-    module
-):
-
-    attributes = {}
-
-    print(
-        f"🔧 Building Cog: {module.__name__}"
-    )
-
-    for name in dir(module):
-
-        obj = getattr(
-            module,
-            name
-        )
-
-        if not callable(obj):
-            continue
-
-        # =============================================
-        # COMMAND
-        # =============================================
-
-        if hasattr(
-            obj,
-            COMMAND_MARKER
-        ):
-
-            kwargs = getattr(
-                obj,
-                COMMAND_MARKER
-            )
-
-            attributes[name] = _build_command(
-                obj,
-                kwargs
-            )
-
-            print(
-                f"  ├─ Registered command: {name}"
-            )
-
-            continue
-
-        # =============================================
-        # LISTENER
-        # =============================================
-
-        if hasattr(
-            obj,
-            LISTENER_MARKER
-        ):
-
-            listener_name = getattr(
-                obj,
-                LISTENER_MARKER
-            )
-
-            attributes[name] = _build_listener(
-                obj,
-                listener_name
-            )
-
-            print(
-                f"  ├─ Registered listener: {name}"
-            )
-
-            continue
-
-    # =============================================
-    # NOTHING TO REGISTER
-    # =============================================
-
-    if not attributes:
-
-        return None
-
-    # =============================================
-    # COG CONSTRUCTOR
-    # =============================================
-
-    def __init__(
-        self,
-        bot
-    ):
-
-        self.bot = bot
-
-    attributes["__init__"] = __init__
-
-    # =============================================
-    # CREATE COG CLASS
-    # =============================================
-
-    CogClass = type(
-        f"{module.__name__.split('.')[-1].title()}Cog",
-        (commands.Cog,),
-        attributes
-    )
-
-    print(
-        f"  ✅ Created Cog: {CogClass.__name__}"
-    )
-
-    return CogClass(
-        bot
-    )
-
-
-# =========================================================
-# SETUP MODULE
-# =========================================================
-
-async def setup_module(
-    bot,
-    module
-):
-
-    cog = _build_cog(
-        bot,
-        module
-    )
-
-    if cog is None:
-
-        return None
-
-    await bot.add_cog(
-        cog
-    )
-
-    print(
-        f"  ✅ Loaded: {module.__name__}"
-    )
-
-    return cog
-
-
-# =========================================================
-# SETUP SYSTEM
-# =========================================================
-
-async def setup_system(
-    bot,
-    package_name
-):
-
-    print(
-        f"🔍 Scanning system: {package_name}"
-    )
-
-    package = importlib.import_module(
-        package_name
-    )
-
-    for module_info in pkgutil.walk_packages(
-        package.__path__,
-        prefix=f"{package.__name__}."
-    ):
-
-        module_name = module_info.name
-
-        # ---------------------------------------------
-        # Don't load cog.py again
-        # ---------------------------------------------
-
-        if module_name.endswith(
-            ".cog"
-        ):
-
-            continue
-
-        # ---------------------------------------------
-        # Ignore private modules
-        # ---------------------------------------------
-
-        if any(
-            part.startswith("_")
-            for part in module_name.split(".")
-        ):
-
-            continue
-
-        # =============================================
-        # IMPORT MODULE
-        # =============================================
-
-        try:
-
-            module = importlib.import_module(
-                module_name
-            )
-
-        except Exception as e:
-
-            print(
-                f"  ❌ Failed to import "
-                f"{module_name}: {e}"
-            )
-
-            continue
-
-        # =============================================
-        # SETUP MODULE
-        # =============================================
-
-        try:
-
-            await setup_module(
-                bot,
-                module
-            )
-
-        except Exception as e:
-
-            print(
-                f"  ❌ Failed to setup "
-                f"{module_name}: {e}"
-    )

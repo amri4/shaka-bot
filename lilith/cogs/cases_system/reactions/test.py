@@ -1,3 +1,4 @@
+print("🔥🔥🔥 TEST.PY IMPORTED 🔥🔥🔥")
 from utils.discord_setup import *
 
 

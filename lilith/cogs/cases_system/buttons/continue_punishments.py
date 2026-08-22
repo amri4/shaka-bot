@@ -1,6 +1,6 @@
 from utils.discord_setup import *
 
-from ..reactions.punishments import (
+from ..reactions.punishment import (
     get_selected_punishments
 )
 
@@ -19,6 +19,14 @@ async def continue_punishments(
         interaction.user.id
     )
 
+    print(
+        "[Punishment] Selected:",
+        [
+            punishment.NAME
+            for punishment in selected
+        ]
+    )
+
     if not selected:
 
         await interaction.response.send_message(
@@ -28,17 +36,8 @@ async def continue_punishments(
 
         return
 
-    print(
-        "Selected punishments:",
-        [
-            punishment.NAME
-            for punishment in selected
-        ]
-    )
-
     await interaction.response.send_message(
-        "Selected punishments: "
-        + ", ".join(
+        "Selected: " + ", ".join(
             punishment.NAME
             for punishment in selected
         ),

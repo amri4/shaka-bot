@@ -4,8 +4,7 @@ import mycord
 from datetime import datetime
 
 from utils.discord_setup import *
-from ..buttons.approve import approve
-from ..buttons.example import open_modal
+from ..buttons.continue_punishments import continue_punishments
 
 
 db = mycord.PunksDB()
@@ -234,7 +233,6 @@ async def report(ctx, *, reason: str):
     )
 
     report_message = await report_channel.send(embed=mod_embed, view=ui(continue_punishments))
-    await message.add_reaction("⚠️")
-    await message.add_reaction("🔇")
-    await message.add_reaction("👢")
-print("🔥 REPORT.PY IMPORTED")
+    await report_message.add_reaction("⚠️")
+    await report_message.add_reaction("🔇")
+    await report_message.add_reaction("👢")

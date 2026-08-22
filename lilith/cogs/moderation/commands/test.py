@@ -1,5 +1,6 @@
 from discord.ext import commands
 from ..buttons.test import test_button
+from utils.discord_setup import ui
 
 
 @commands.command()

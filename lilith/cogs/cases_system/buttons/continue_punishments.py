@@ -19,14 +19,6 @@ async def continue_punishments(
         interaction.user.id
     )
 
-    print(
-        "Punishment selected:",
-        [
-            punishment.NAME
-            for punishment in selected
-        ]
-    )
-
     if not selected:
 
         await interaction.response.send_message(
@@ -35,6 +27,14 @@ async def continue_punishments(
         )
 
         return
+
+    print(
+        "Punishments selected:",
+        [
+            punishment.NAME
+            for punishment in selected
+        ]
+    )
 
     await interaction.response.send_message(
         "Selected: " + ", ".join(

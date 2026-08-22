@@ -1,39 +1,45 @@
-from utils.discord_setup import *
+import importlib
+import pkgutil
 
-from ..punishments import *
+from discord.ext import commands
 
-
-PUNISHMENTS = {
-    kick.EMOJI: kick,
-    timeout.EMOJI: timeout,
-}
+import lilith.cogs.moderation.punishments as punishments
 
 
-async def get_selected_punishments(
-    message,
-    user_id
-):
+def get_punishments():
 
-    selected = []
+    result = {}
 
-    for reaction in message.reactions:
+    for info in pkgutil.iter_modules(
+        punishments.__path__
+    ):
 
-        punishment = PUNISHMENTS.get(
-            str(reaction.emoji)
+        module = importlib.import_module(
+            f"lilith.cogs.moderation.punishments.{info.name}"
         )
 
-        if punishment is None:
-            continue
+        if hasattr(module, "EMOJI"):
+            result[module.EMOJI] = module
 
-        users = [
-            user.id
-            async for user in reaction.users()
-        ]
+    return result
 
-        if user_id in users:
 
-            selected.append(
-                punishment
-            )
+@commands.Cog.listener()
+async def on_raw_reaction_add(
+    self,
+    payload
+):
 
-    return selected
+    if payload.user_id == self.bot.user.id:
+        return
+
+    punishment = get_punishments().get(
+        str(payload.emoji)
+    )
+
+    if not punishment:
+        return
+
+    print(
+        f"Punishment selected: {punishment.NAME}"
+)

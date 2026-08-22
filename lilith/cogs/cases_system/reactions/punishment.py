@@ -18,7 +18,10 @@ async def punishment_reaction_add(payload):
     if payload.guild_id is None:
         return
 
-    if payload.user_id == 0:
+    if payload.member is None:
+        return
+
+    if payload.member.bot:
         return
 
     punishment = PUNISHMENTS.get(
@@ -36,15 +39,12 @@ async def punishment_reaction_add(payload):
     selected_punishments.setdefault(
         key,
         set()
-    ).add(
-        punishment
-    )
+    ).add(punishment)
 
     print(
         f"[Punishment] "
-        f"{payload.user_id} selected "
-        f"{punishment.NAME} "
-        f"on message {payload.message_id}"
+        f"{payload.member} selected "
+        f"{punishment.NAME}"
     )
 
 
@@ -71,7 +71,10 @@ async def punishment_reaction_remove(payload):
     selected.discard(punishment)
 
     if not selected:
-        selected_punishments.pop(key, None)
+        selected_punishments.pop(
+            key,
+            None
+        )
 
 
 def get_selected_punishments(
@@ -85,4 +88,4 @@ def get_selected_punishments(
             user_id
         ),
         set()
-  )
+    )

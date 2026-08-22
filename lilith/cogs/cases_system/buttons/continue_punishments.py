@@ -14,13 +14,13 @@ async def continue_punishments(
     button
 ):
 
-    selected = get_selected_punishments(
-        interaction.message.id,
+    selected = await get_selected_punishments(
+        interaction.message,
         interaction.user.id
     )
 
     print(
-        "[Punishment] Selected:",
+        "Punishment selected:",
         [
             punishment.NAME
             for punishment in selected

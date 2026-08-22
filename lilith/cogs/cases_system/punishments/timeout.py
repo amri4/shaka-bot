@@ -5,6 +5,7 @@ NAME = "timeout"
 EMOJI = "🔇"
 REQUIRE_INPUT = True
 FIELD = "timeout duration"
+PLACEHOLDER = "Example: 2s, 6m, 1h, 3d"
 
 def prase_duration(value):
     value = value.strip().lower()

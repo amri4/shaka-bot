@@ -1,17 +1,20 @@
 import discord
 import mycord
 
-from datetime import datetime
+from datetime import datetime, timezone
+from discord.ext import commands
 
-from utils.discord_setup import *
+from utils.discord_setup import ui
 from ..buttons.continue_punishments import continue_punishments
 
 
 db = mycord.PunksDB()
 
-@command()
+
+@commands.command()
 async def testreport(ctx):
     await ctx.send("REPORT MODULE WORKS")
+
 
 def get_report_channel_id(guild_id):
 
@@ -27,7 +30,7 @@ def get_report_channel_id(guild_id):
     return data[6]
 
 
-@command()
+@commands.command()
 async def report(ctx, *, reason: str):
 
     # =========================================
@@ -50,7 +53,7 @@ async def report(ctx, *, reason: str):
         ctx.message.reference.message_id
     )
 
-    created_at = datetime.utcnow()
+    created_at = datetime.now(timezone.utc)
 
     # =========================================
     # GET REPORT CHANNEL
@@ -122,6 +125,14 @@ async def report(ctx, *, reason: str):
         )
     )
 
+    if not case:
+
+        await ctx.send(
+            "❌️ Failed to create the report case."
+        )
+
+        return
+
     # =========================================
     # REPORTER EMBED
     # =========================================
@@ -130,7 +141,7 @@ async def report(ctx, *, reason: str):
         title="📨 Report Received",
         description=(
             "Your report has been successfully submitted "
-            "for mods review"
+            "for mods review."
         ),
         color=discord.Color.blue()
     )
@@ -218,20 +229,32 @@ async def report(ctx, *, reason: str):
         inline=True
     )
 
-    message = (
+    # =========================================
+    # PUNISHMENT ACTIONS
+    # =========================================
+
+    action_text = (
         "🧪 Punishment test\n\n"
-            "React with:\n"
-            "⚠️ Warning\n"
-            "🔇 Timeout\n"
-            "👢 Kick\n\n"
-            "Then press Continue."
+        "React with:\n"
+        "🔇 Timeout\n"
+        "👢 Kick\n\n"
+        "Then press Continue."
     )
+
     mod_embed.add_field(
         name="Actions",
-        value=message,
+        value=action_text,
         inline=True
     )
 
-    report_message = await report_channel.send(embed=mod_embed, view=ui(continue_punishments))
+    # =========================================
+    # SEND MODERATOR REPORT
+    # =========================================
+
+    report_message = await report_channel.send(
+        embed=mod_embed,
+        view=ui(continue_punishments)
+    )
+
     await report_message.add_reaction("🔇")
     await report_message.add_reaction("👢")

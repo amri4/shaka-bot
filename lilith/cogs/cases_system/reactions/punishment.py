@@ -5,7 +5,6 @@ from ..punishments import *
 
 PUNISHMENTS = {
     kick.EMOJI: kick,
-    warning.EMOJI: warning,
     timeout.EMOJI: timeout,
 }
 

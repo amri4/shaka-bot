@@ -1,16 +1,36 @@
-from utils.discord_setup import setup_system
+import importlib
+import pkgutil
+
+from discord.ext import commands
 
 
 async def setup(bot):
 
-    print("🔥 SYSTEM COG LOADED")
+    attributes = {}
 
-    print(
-        "📦 PACKAGE:",
-        __package__
+    package = importlib.import_module(
+        f"{__package__}.commands"
     )
 
-    await setup_system(
-        bot,
-        __package__
+    for info in pkgutil.iter_modules(
+        package.__path__
+    ):
+
+        module = importlib.import_module(
+            f"{package.__name__}.{info.name}"
+        )
+
+        for name, obj in vars(module).items():
+
+            if isinstance(obj, commands.Command):
+                attributes[name] = obj
+
+    Cog = type(
+        "Moderation",
+        (commands.Cog,),
+        attributes
+    )
+
+    await bot.add_cog(
+        Cog()
     )

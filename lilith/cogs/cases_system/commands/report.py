@@ -5,6 +5,7 @@ from datetime import datetime
 
 from utils.discord_setup import *
 from ..buttons.approve import approve
+from ..buttons.example import open_modal
 
 
 db = mycord.PunksDB()
@@ -219,6 +220,6 @@ async def report(ctx, *, reason: str):
     )
 
     await report_channel.send(
-        embed=mod_embed, view=ui(approve)
+        embed=mod_embed, view=ui(approve, open_modal)
         )
 print("🔥 REPORT.PY IMPORTED")

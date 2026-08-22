@@ -1,33 +1,26 @@
 from utils.discord_setup import *
+
 from ..punishments import *
 
+
 PUNISHMENTS = {
-  kick.EMOJI: kick,
-  timeout.EMOJI: timeout
+    kick.EMOJI: kick,
+    warning.EMOJI: warning,
+    timeout.EMOJI: timeout,
 }
+
+
 selected_punishments = {}
+
 
 @listener("on_raw_reaction_add")
 async def punishment_reaction_add(payload):
+
     if payload.guild_id is None:
-        return 
-    if payload.member is None:
-        return
-    if payload.member.bot:
         return
 
-    punishment = PUNISHMENTS.get(str(payload.emoji))
-
-    if punishment is None:
+    if payload.user_id == 0:
         return
-
-    key = (payload.message_id, payload.user_id)
-    selected_punishments.setdefault(key, set()).add(punishment)
-
-@listener("on_raw_reaction_remove")
-async def punishment_reaction_remove(
-    payload
-):
 
     punishment = PUNISHMENTS.get(
         str(payload.emoji)
@@ -41,22 +34,46 @@ async def punishment_reaction_remove(
         payload.user_id
     )
 
-    selected = selected_punishments.get(
-        key
-    )
-
-    if selected is None:
-        return
-
-    selected.discard(
+    selected_punishments.setdefault(
+        key,
+        set()
+    ).add(
         punishment
     )
 
-    if not selected:
+    print(
+        f"[Punishment] "
+        f"{payload.user_id} selected "
+        f"{punishment.NAME} "
+        f"on message {payload.message_id}"
+    )
 
-        selected_punishments.pop(
-            key
-        )
+
+@listener("on_raw_reaction_remove")
+async def punishment_reaction_remove(payload):
+
+    punishment = PUNISHMENTS.get(
+        str(payload.emoji)
+    )
+
+    if punishment is None:
+        return
+
+    key = (
+        payload.message_id,
+        payload.user_id
+    )
+
+    selected = selected_punishments.get(key)
+
+    if not selected:
+        return
+
+    selected.discard(punishment)
+
+    if not selected:
+        selected_punishments.pop(key, None)
+
 
 def get_selected_punishments(
     message_id,
@@ -69,4 +86,4 @@ def get_selected_punishments(
             user_id
         ),
         set()
-    )
+  )

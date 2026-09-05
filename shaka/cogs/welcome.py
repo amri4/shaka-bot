@@ -4,7 +4,7 @@ from discord.ext import commands
 import mycord
 
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 
 class Welcome(commands.Cog):

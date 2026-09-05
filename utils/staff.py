@@ -2,7 +2,7 @@ import mycord
 from datetime import datetime, timezone
 
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 
 # =========================================================

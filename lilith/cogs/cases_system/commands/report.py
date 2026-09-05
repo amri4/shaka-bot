@@ -8,7 +8,7 @@ from utils.discord_setup import ui
 from ..buttons.continue_punishments import continue_punishments
 
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 
 @commands.command()

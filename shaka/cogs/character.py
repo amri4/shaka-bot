@@ -5,7 +5,7 @@ import discord
 from utils.command import command
 import asyncio
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 
 def normalize_name(name):

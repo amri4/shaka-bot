@@ -8,7 +8,7 @@ from utils.command import command
 # DATABASE SETUP  
 # =========================================  
   
-db = mycord.PunksDB()  
+db = mycord.DB()  
   
 db.create_table(  
     "bounty",  

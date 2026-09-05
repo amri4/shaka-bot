@@ -1,7 +1,7 @@
 import discord
 import mycord
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 db.create_table(
     "cases",

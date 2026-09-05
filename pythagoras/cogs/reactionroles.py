@@ -7,7 +7,7 @@ import mycord
 from utils.command import command
 
 
-db = mycord.PunksDB()
+db = mycord.DB()
 
 
 # =========================================
